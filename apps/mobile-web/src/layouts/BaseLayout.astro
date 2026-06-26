@@ -1,6 +1,6 @@
 ---
 import "@/styles/global.css";
-const { title = "習慣チェックカレンダー" } = Astro.props;
+const { title = "トレーニング記録" } = Astro.props;
 ---
 
 <!doctype html>
@@ -12,6 +12,10 @@ const { title = "習慣チェックカレンダー" } = Astro.props;
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>{title}</title>
+    {/* アプリアイコン（暫定: CredoBody ロゴ。後で差し替え予定） */}
+    <link rel="icon" type="image/png" href="/icon.png" />
+    <link rel="apple-touch-icon" href="/icon.png" />
+    <meta name="apple-mobile-web-app-title" content="CredoBody" />
   </head>
   <body
     class="min-h-dvh bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100"
