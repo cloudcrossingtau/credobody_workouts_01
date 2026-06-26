@@ -1232,18 +1232,24 @@ export default function TrainingLog() {
               )}
             </div>
 
-            <div className="mt-5 flex gap-2">
-              <button
-                onClick={applyEditor}
-                className="flex-1 rounded-xl bg-blue-600 px-4 py-2.5 text-[16px] font-bold text-white active:bg-blue-700"
-              >
-                保存
-              </button>
+            <button
+              onClick={applyEditor}
+              className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-2.5 text-[16px] font-bold text-white active:bg-blue-700"
+            >
+              保存
+            </button>
+            <div className="mt-2 flex gap-2">
               <button
                 onClick={clearEditor}
-                className="rounded-xl border border-slate-300 px-4 py-2.5 text-[16px] font-medium text-slate-800 dark:border-slate-600 dark:text-slate-100"
+                className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-[16px] font-medium text-slate-800 dark:border-slate-600 dark:text-slate-100"
               >
                 クリア
+              </button>
+              <button
+                onClick={() => setEditing(null)}
+                className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-[16px] font-medium text-slate-800 dark:border-slate-600 dark:text-slate-100"
+              >
+                キャンセル
               </button>
             </div>
           </div>
