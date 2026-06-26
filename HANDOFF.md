@@ -167,9 +167,21 @@ training-app/
   - **スキーマ作成済み**: `supabase/migrations/20260626120000_baseline_training.sql`
     （`profiles`(role/week_start) / `training_items`(unit) / `training_records`、
     全テーブル user_id 所有の RLS、新規ユーザートリガー `handle_new_user`）。旧 habit схема削除。
-  - 残：(a) ユーザーが Supabase で dev/prod プロジェクト作成→ `.env` に dev の URL/anon key、
-    (b) `supabase login` → 各プロジェクトに `supabase link` → `db push`、
-    (c) 認証UI（signup/login）、(d) ローカル⇔Supabase 同期層（localStorage を維持しつつ同期）。
+  - dev/prod 作成・`.env` 設定・`db push`（baseline）まで完了。dev=`mohlrepvnpnycljwppxm` /
+    prod=`tnwzjipfzpxtkqwijrtc`。
+  - **認証（4a 実装済み）**: `AuthScreen`（ログイン/登録）＋ `HabitCalendar` の認証ゲート。
+    セッションは supabase-js が localStorage 保持＝一度ログインすればオフライン維持。
+  - **招待制＋ロール（実装済み 2026-06-26）**:
+    - ロール: `general`(一般) / `admin`(管理者=招待など) / `developer`(全データ＋全管理) /
+      `trainer`(将来用・未使用)。判定は `is_admin()`/`is_developer()`（SECURITY DEFINER）。
+      開発者は training_items/records を全件アクセス可（RLSポリシー）。
+    - 招待: Edge Function `supabase/functions/invite-user`（admin/developer のみ、
+      service_role で `inviteUserByEmail`）。設定タブに招待UI（admin/developer表示）。
+    - 公開signup無効化: `PUBLIC_DISABLE_SIGNUP=true`（UI非表示）＋ Supabase Auth でも
+      signup無効化が必要。招待リンク→ `SetPasswordScreen` で初回パスワード設定。
+    - ★ 要手動: prod へ roles migration push / 各プロジェクトに invite-user deploy /
+      Auth で signup無効化＋Redirect URL 登録 / 最初の developer を手動設定。
+  - 残：**(d) ローカル⇔Supabase 同期層**（localStorage を維持しつつ同期）＝次の実装。
 - **本人に見せて FB**。
 - （必要なら）**Capacitor でネイティブ化**（主目的=オフライン/電波対策）。
   - ★ Capacitor 化時は `astro.config` を `build: { format: "file" }` に（第7節参照）。
