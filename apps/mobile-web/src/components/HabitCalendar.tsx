@@ -8,6 +8,7 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { getMyProfile, getAvatarUrl } from "@/lib/profile";
+import { pullRemote, reconcileToRemote, remapLocalIds, uuid } from "@/lib/sync";
 import AuthScreen from "./AuthScreen";
 import SetPasswordScreen from "./SetPasswordScreen";
 import ProfileScreen from "./ProfileScreen";
@@ -135,6 +136,9 @@ export default function TrainingLog() {
   const [authChecked, setAuthChecked] = useState(false);
   const [myRole, setMyRole] = useState<string | null>(null);
   const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
+  // Supabase 同期: 初回同期完了後に true（以降ローカル変更をミラー）
+  const [syncReady, setSyncReady] = useState(false);
+  const syncedRef = useRef(false);
   // 招待メール/再設定リンク経由＝初回パスワード設定が必要
   const [needsPassword, setNeedsPassword] = useState(false);
   // 招待フォーム
@@ -191,6 +195,13 @@ export default function TrainingLog() {
       if (event === "PASSWORD_RECOVERY") setNeedsPassword(true);
       // ログアウト/ログイン時はホームに戻す（前回のビューが残らないように）
       if (event === "SIGNED_OUT" || event === "SIGNED_IN") setView("grid");
+      // ログアウト時はローカルデータを消去（別ユーザーへの混在/誤同期を防ぐ）
+      if (event === "SIGNED_OUT") {
+        setItems([]);
+        setMinutes({});
+        setSyncReady(false);
+        syncedRef.current = false;
+      }
     });
     return () => sub.subscription.unsubscribe();
   }, []);
@@ -210,6 +221,46 @@ export default function TrainingLog() {
     }
     refreshProfile();
   }, [session]);
+
+  // 初回同期: リモートにデータがあれば採用、無ければローカルをアップロード
+  useEffect(() => {
+    if (!supabase || !session || !loaded) return;
+    if (syncedRef.current) return;
+    syncedRef.current = true;
+    (async () => {
+      try {
+        const remote = await pullRemote();
+        if (!remote) return;
+        if (remote.items.length > 0) {
+          // リモートが正
+          setItems(remote.items);
+          setMinutes(remote.minutes);
+          if (remote.weekStart != null) setWeekStart(remote.weekStart);
+        } else if (items.length > 0) {
+          // リモート空＆ローカルあり → ローカルをアップロード（IDをuuid化）
+          const remapped = remapLocalIds(items, minutes);
+          setItems(remapped.items);
+          setMinutes(remapped.minutes);
+          await reconcileToRemote(remapped.items, remapped.minutes, weekStart);
+        }
+        setSyncReady(true);
+      } catch {
+        // オフライン等：ローカルのまま使う。次回セッション変化でリトライ
+        syncedRef.current = false;
+      }
+    })();
+  }, [session, loaded]);
+
+  // 以降のローカル変更を Supabase へミラー（デバウンス）
+  useEffect(() => {
+    if (!supabase || !session || !syncReady) return;
+    // 安全策: 全空では同期しない（誤って全削除しないため）
+    if (items.length === 0 && Object.keys(minutes).length === 0) return;
+    const t = window.setTimeout(() => {
+      reconcileToRemote(items, minutes, weekStart).catch(() => {});
+    }, 800);
+    return () => window.clearTimeout(t);
+  }, [items, minutes, weekStart, syncReady, session]);
 
   async function invite() {
     if (!supabase) return;
@@ -261,13 +312,14 @@ export default function TrainingLog() {
         );
         setMinutes(rawM ? JSON.parse(rawM) : {});
       } else {
-        setItems(SEED_ITEMS);
-        setMinutes(seedMinutes(SEED_ITEMS));
+        // 新規は空から開始（自動デモ投入は廃止。デモは設定の「デモ用データを投入」で）
+        setItems([]);
+        setMinutes({});
       }
       if (rawW !== null) setWeekStart(Number(rawW));
     } catch {
-      setItems(SEED_ITEMS);
-      setMinutes(seedMinutes(SEED_ITEMS));
+      setItems([]);
+      setMinutes({});
     }
     setLoaded(true);
   }, []);
@@ -371,7 +423,7 @@ export default function TrainingLog() {
   function addItem() {
     const name = newName.trim();
     if (!name) return;
-    const id = `i${Date.now()}`;
+    const id = uuid();
     setItems((arr) => [...arr, { id, name, color: newColor, unit: newUnit }]);
     setNewName("");
     setNewColor(COLOR_CHOICES[0]);
