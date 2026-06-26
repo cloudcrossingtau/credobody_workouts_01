@@ -1,10 +1,47 @@
 @import "tailwindcss";
 
-/* ダークモードはルート要素の .dark クラスで切り替える */
+/* ダークモードはルート要素の .dark クラスで切り替える（現在は未使用） */
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
+  /* カラーパレット（CredoBody: ブルー基調＋柔らかいクール系背景） */
+  --background: #eef2f7; /* 画面全体の背景（淡いクールグレー） */
+  --foreground: #1f2937; /* 基本の文字色 */
+  --card-bg: #ffffff; /* カード/グリッドの背景 */
+  --card-border: #e5e9f0; /* 枠線 */
+  --accent: #2563eb; /* 主要アクション（ボタン/選択中） */
+  --accent-light: #dbeafe;
+  --muted: #6b7280; /* 補助テキスト */
+
   /* iOS のセーフエリア（ノッチ・ホームインジケータ） */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card-bg: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-muted: var(--muted);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: contain;
+}
+
+/* スクロールバーは隠す（モバイルではノイズ） */
+::-webkit-scrollbar {
+  display: none;
 }

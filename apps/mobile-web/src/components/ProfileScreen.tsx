@@ -96,17 +96,24 @@ export default function ProfileScreen({
 
   return (
     <div className="pb-24">
-      {/* ヘッダー */}
-      <div className="flex items-center">
-        <button
-          onClick={onBack}
-          className="rounded-lg px-2 py-1.5 text-[16px] font-bold text-slate-700 dark:text-slate-200"
-        >
-          ‹ 戻る
-        </button>
-        <h1 className="flex-1 text-center text-xl font-bold">プロフィール</h1>
-        <span className="w-14" />
-      </div>
+      {/* ヘッダー（左寄せ・固定） */}
+      <header
+        className="sticky top-0 z-30 -mx-4 mb-3 border-b border-card-border bg-background px-4"
+        style={{ paddingTop: "var(--safe-top)" }}
+      >
+        <div className="flex h-14 items-center gap-1">
+          <button
+            onClick={onBack}
+            aria-label="戻る"
+            className="-ml-1 px-1 text-[22px] leading-none text-foreground"
+          >
+            ‹
+          </button>
+          <span className="text-[17px] font-semibold text-foreground">
+            プロフィール
+          </span>
+        </div>
+      </header>
 
       {/* アバター */}
       <div className="mt-6 flex flex-col items-center">
@@ -173,15 +180,15 @@ export default function ProfileScreen({
       </section>
 
       {/* アカウント情報（参照のみ） */}
-      <section className="mt-5 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+      <section className="mt-5 rounded-2xl border border-card-border bg-card-bg p-4 dark:border-slate-800 dark:bg-slate-900">
         <div className="flex justify-between text-[14px]">
-          <span className="text-slate-600 dark:text-slate-400">メール</span>
+          <span className="text-muted">メール</span>
           <span className="text-slate-900 dark:text-slate-100">
             {profile?.email ?? "-"}
           </span>
         </div>
         <div className="mt-2 flex justify-between text-[14px]">
-          <span className="text-slate-600 dark:text-slate-400">権限</span>
+          <span className="text-muted">権限</span>
           <span className="text-slate-900 dark:text-slate-100">
             {profile ? (ROLE_LABEL[profile.role] ?? profile.role) : "-"}
           </span>
@@ -200,7 +207,7 @@ export default function ProfileScreen({
       <button
         onClick={save}
         disabled={saving}
-        className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-[16px] font-bold text-white active:bg-blue-700 disabled:opacity-50"
+        className="mt-5 w-full rounded-xl bg-accent px-4 py-3 text-[16px] font-semibold text-white active:opacity-90 disabled:opacity-50"
       >
         {saving ? "保存中…" : "保存"}
       </button>

@@ -412,7 +412,7 @@ export default function TrainingLog() {
   ];
   const tabBar = (
     <nav
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-card-border bg-card-bg dark:border-slate-800 dark:bg-slate-900"
       style={{ paddingBottom: "env(safe-area-inset-bottom, 0px)" }}
       aria-label="主要ナビゲーション"
     >
@@ -424,7 +424,7 @@ export default function TrainingLog() {
               key={t.id}
               onClick={() => setView(t.id)}
               className={`flex flex-1 flex-col items-center justify-center gap-0.5 py-2 ${
-                active ? "text-blue-600" : "text-slate-500 dark:text-slate-400"
+                active ? "text-accent" : "text-slate-500 dark:text-slate-400"
               }`}
               aria-current={active ? "page" : undefined}
             >
@@ -442,7 +442,7 @@ export default function TrainingLog() {
   if (supabase) {
     if (!authChecked) {
       return (
-        <div className="py-24 text-center text-[15px] text-slate-600 dark:text-slate-400">
+        <div className="py-24 text-center text-[15px] text-muted">
           読み込み中…
         </div>
       );
@@ -482,11 +482,20 @@ export default function TrainingLog() {
     return (
       <>
         <div className="pb-24">
-          <h1 className="text-center text-xl font-bold">設定</h1>
+          <header
+            className="sticky top-0 z-30 -mx-4 mb-3 border-b border-card-border bg-background px-4"
+            style={{ paddingTop: "var(--safe-top)" }}
+          >
+            <div className="flex h-14 items-center">
+              <span className="text-[17px] font-semibold text-foreground">
+                設定
+              </span>
+            </div>
+          </header>
 
           {/* 週の開始曜日 */}
           <section className="mt-5">
-            <h2 className="text-[16px] font-bold text-slate-900 dark:text-slate-100">
+            <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
               週の開始曜日
             </h2>
             <div className="mt-2 flex gap-1.5">
@@ -494,9 +503,9 @@ export default function TrainingLog() {
                 <button
                   key={idx}
                   onClick={() => setWeekStart(idx)}
-                  className={`flex h-10 flex-1 items-center justify-center rounded-lg text-[15px] font-bold ${
+                  className={`flex h-10 flex-1 items-center justify-center rounded-lg text-[15px] font-semibold ${
                     weekStart === idx
-                      ? "bg-blue-600 text-white"
+                      ? "bg-accent text-white"
                       : "bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-100"
                   }`}
                 >
@@ -508,10 +517,10 @@ export default function TrainingLog() {
 
           {/* トレーニング項目 */}
           <section className="mt-7">
-            <h2 className="text-[16px] font-bold text-slate-900 dark:text-slate-100">
+            <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
               トレーニング項目
             </h2>
-            <div className="mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900">
+            <div className="mt-2 overflow-hidden rounded-2xl border border-card-border bg-card-bg dark:border-slate-800 dark:bg-slate-900">
               {items.map((it, idx) => (
                 <div
                   key={it.id}
@@ -556,7 +565,7 @@ export default function TrainingLog() {
                     {/* 削除 */}
                     <button
                       onClick={() => deleteItem(it.id)}
-                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500 text-[15px] font-bold text-white"
+                      className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-red-500 text-[15px] font-semibold text-white"
                       aria-label="削除"
                     >
                       ×
@@ -565,7 +574,7 @@ export default function TrainingLog() {
 
                   {/* 単位 */}
                   <div className="mt-2 flex items-center gap-2 pl-1">
-                    <span className="text-[13px] text-slate-600 dark:text-slate-400">
+                    <span className="text-[13px] text-muted">
                       記録の単位
                     </span>
                     <div className="flex overflow-hidden rounded-lg border border-slate-300 dark:border-slate-600">
@@ -573,8 +582,8 @@ export default function TrainingLog() {
                         onClick={() => updateItem(it.id, { unit: "time" })}
                         className={`px-3 py-1 text-[14px] font-medium ${
                           it.unit === "time"
-                            ? "bg-blue-600 text-white"
-                            : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100"
+                            ? "bg-accent text-white"
+                            : "bg-card-bg text-slate-800 dark:bg-slate-800 dark:text-slate-100"
                         }`}
                       >
                         時間
@@ -583,8 +592,8 @@ export default function TrainingLog() {
                         onClick={() => updateItem(it.id, { unit: "count" })}
                         className={`px-3 py-1 text-[14px] font-medium ${
                           it.unit === "count"
-                            ? "bg-blue-600 text-white"
-                            : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100"
+                            ? "bg-accent text-white"
+                            : "bg-card-bg text-slate-800 dark:bg-slate-800 dark:text-slate-100"
                         }`}
                       >
                         種目数
@@ -623,8 +632,8 @@ export default function TrainingLog() {
             </div>
 
             {/* 新規追加 */}
-            <div className="mt-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
-              <p className="text-[15px] font-bold text-slate-900 dark:text-slate-100">
+            <div className="mt-4 rounded-2xl border border-card-border bg-card-bg p-4 dark:border-slate-800 dark:bg-slate-900">
+              <p className="text-[15px] font-semibold text-slate-900 dark:text-slate-100">
                 項目を追加
               </p>
               <input
@@ -641,8 +650,8 @@ export default function TrainingLog() {
                   onClick={() => setNewUnit("time")}
                   className={`flex-1 px-3 py-2 text-[15px] font-medium ${
                     newUnit === "time"
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100"
+                      ? "bg-accent text-white"
+                      : "bg-card-bg text-slate-800 dark:bg-slate-800 dark:text-slate-100"
                   }`}
                 >
                   時間
@@ -651,8 +660,8 @@ export default function TrainingLog() {
                   onClick={() => setNewUnit("count")}
                   className={`flex-1 px-3 py-2 text-[15px] font-medium ${
                     newUnit === "count"
-                      ? "bg-blue-600 text-white"
-                      : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100"
+                      ? "bg-accent text-white"
+                      : "bg-card-bg text-slate-800 dark:bg-slate-800 dark:text-slate-100"
                   }`}
                 >
                   種目数
@@ -678,7 +687,7 @@ export default function TrainingLog() {
               </div>
               <button
                 onClick={addItem}
-                className="mt-4 w-full rounded-xl bg-blue-600 px-4 py-2.5 text-[16px] font-bold text-white active:bg-blue-700"
+                className="mt-4 w-full rounded-xl bg-accent px-4 py-2.5 text-[16px] font-semibold text-white active:opacity-90"
               >
                 ＋ 追加
               </button>
@@ -687,7 +696,7 @@ export default function TrainingLog() {
 
           {/* データ管理 */}
           <section className="mt-7">
-            <h2 className="text-[16px] font-bold text-slate-900 dark:text-slate-100">
+            <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
               データ
             </h2>
             <div className="mt-2 flex gap-2">
@@ -709,7 +718,7 @@ export default function TrainingLog() {
           {/* ユーザー招待（管理者/開発者のみ） */}
           {supabase && session && (myRole === "admin" || myRole === "developer") && (
             <section className="mt-7">
-              <h2 className="text-[16px] font-bold text-slate-900 dark:text-slate-100">
+              <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
                 ユーザー招待
               </h2>
               <div className="mt-2 flex gap-2">
@@ -724,7 +733,7 @@ export default function TrainingLog() {
                 <button
                   onClick={invite}
                   disabled={inviteBusy}
-                  className="shrink-0 rounded-xl bg-blue-600 px-4 py-2.5 text-[15px] font-bold text-white active:bg-blue-700 disabled:opacity-50"
+                  className="shrink-0 rounded-xl bg-accent px-4 py-2.5 text-[15px] font-semibold text-white active:opacity-90 disabled:opacity-50"
                 >
                   {inviteBusy ? "送信中…" : "招待"}
                 </button>
@@ -740,7 +749,7 @@ export default function TrainingLog() {
           {/* アカウント */}
           {supabase && session && (
             <section className="mt-7">
-              <h2 className="text-[16px] font-bold text-slate-900 dark:text-slate-100">
+              <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
                 アカウント
               </h2>
               <p className="mt-2 text-[14px] text-slate-700 dark:text-slate-300">
@@ -808,7 +817,7 @@ export default function TrainingLog() {
                 ? "text-red-500"
                 : wd === 6
                   ? "text-blue-500"
-                  : "text-slate-600 dark:text-slate-400"
+                  : "text-muted"
             }`}
           >
             {isFirst ? `${d.getMonth() + 1}/1` : d.getDate()}
@@ -822,7 +831,7 @@ export default function TrainingLog() {
     const weeklyX = (ws: Date): ReactNode => {
       const we = addDays(ws, 6);
       return (
-        <div className="text-center text-[11px] text-slate-600 dark:text-slate-400">
+        <div className="text-center text-[11px] text-muted">
           {ws.getMonth() + 1}/{ws.getDate()}
           <br />〜{we.getMonth() + 1}/{we.getDate()}
         </div>
@@ -844,7 +853,7 @@ export default function TrainingLog() {
       const ticks: number[] = [];
       for (let t = 0; t <= scale.max + 1e-9; t += scale.step) ticks.push(t);
       return (
-        <div className="mt-3 flex items-start rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900">
+        <div className="mt-3 flex items-start rounded-2xl border border-card-border bg-card-bg p-3 dark:border-slate-800 dark:bg-slate-900">
           {/* 固定Y軸 */}
           <div className="relative shrink-0" style={{ width: AXIS_W, height: CHART_H }}>
             {ticks.map((t, i) => (
@@ -907,12 +916,21 @@ export default function TrainingLog() {
     return (
       <>
         <div className="pb-24">
-          <h1 className="text-center text-xl font-bold">グラフ</h1>
+          <header
+            className="sticky top-0 z-30 -mx-4 mb-3 border-b border-card-border bg-background px-4"
+            style={{ paddingTop: "var(--safe-top)" }}
+          >
+            <div className="flex h-14 items-center">
+              <span className="text-[17px] font-semibold text-foreground">
+                グラフ
+              </span>
+            </div>
+          </header>
 
           {timeItems.length > 0 && (
             <>
               <section className="mt-5">
-                <h2 className="text-[16px] font-bold text-slate-900 dark:text-slate-100">
+                <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
                   時間（h）・日別
                 </h2>
                 {renderBarChart(
@@ -927,7 +945,7 @@ export default function TrainingLog() {
                 )}
               </section>
               <section className="mt-6">
-                <h2 className="text-[16px] font-bold text-slate-900 dark:text-slate-100">
+                <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
                   時間（h）・週別
                 </h2>
                 {renderBarChart(
@@ -947,7 +965,7 @@ export default function TrainingLog() {
           {countItems.length > 0 && (
             <>
               <section className="mt-7">
-                <h2 className="text-[16px] font-bold text-slate-900 dark:text-slate-100">
+                <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
                   種目数（回）・日別
                 </h2>
                 {renderBarChart(
@@ -962,7 +980,7 @@ export default function TrainingLog() {
                 )}
               </section>
               <section className="mt-6">
-                <h2 className="text-[16px] font-bold text-slate-900 dark:text-slate-100">
+                <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
                   種目数（回）・週別
                 </h2>
                 {renderBarChart(
@@ -1008,68 +1026,77 @@ export default function TrainingLog() {
   return (
     <>
       <div className="pb-24">
-        {/* ヘッダー（左：今日へ / 右：ユーザーアイコン） */}
-        <div className="flex h-9 items-center justify-between">
-          {items.length > 0 ? (
-            <button
-              onClick={() => {
-                if (gridScrollRef.current)
-                  gridScrollRef.current.scrollLeft =
-                    gridScrollRef.current.scrollWidth;
-              }}
-              className="rounded-full border border-slate-300 px-3 py-1 text-[13px] font-medium text-slate-700 dark:border-slate-600 dark:text-slate-200"
-            >
-              今日へ
-            </button>
-          ) : (
-            <span />
-          )}
-          {supabase && session && (
-            <button
-              onClick={() => setView("profile")}
-              className="h-9 w-9 overflow-hidden rounded-full bg-slate-200 ring-1 ring-slate-300 dark:bg-slate-700 dark:ring-slate-600"
-              aria-label="プロフィール"
-            >
-              {myAvatarUrl ? (
-                <img
-                  src={myAvatarUrl}
-                  alt="プロフィール"
-                  className="h-full w-full object-cover"
-                />
-              ) : (
-                <span className="flex h-full w-full items-center justify-center text-slate-500 dark:text-slate-300">
-                  <svg
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth={1.8}
-                    className="h-5 w-5"
-                  >
-                    <circle cx="12" cy="8" r="4" />
-                    <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
-                  </svg>
-                </span>
-              )}
-            </button>
-          )}
-        </div>
+        {/* ヘッダー（左: CredoBody ロゴ / 右: ユーザーアイコン）。スクロールしても固定 */}
+        <header
+          className="sticky top-0 z-30 -mx-4 mb-3 border-b border-card-border bg-background px-4"
+          style={{ paddingTop: "var(--safe-top)" }}
+        >
+          <div className="flex h-14 items-center justify-between">
+            <div className="flex items-center gap-2">
+              <img src="/icon.png" alt="" className="h-7 w-7" />
+              <span className="text-[17px] font-semibold text-foreground">
+                CredoBody
+              </span>
+            </div>
+            {supabase && session && (
+              <button
+                onClick={() => setView("profile")}
+                className="h-9 w-9 overflow-hidden rounded-full bg-slate-200 ring-1 ring-card-border dark:bg-slate-700"
+                aria-label="プロフィール"
+              >
+                {myAvatarUrl ? (
+                  <img
+                    src={myAvatarUrl}
+                    alt="プロフィール"
+                    className="h-full w-full object-cover"
+                  />
+                ) : (
+                  <span className="flex h-full w-full items-center justify-center text-muted">
+                    <svg
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth={1.8}
+                      className="h-5 w-5"
+                    >
+                      <circle cx="12" cy="8" r="4" />
+                      <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+                    </svg>
+                  </span>
+                )}
+              </button>
+            )}
+          </div>
+        </header>
 
         {items.length === 0 ? (
-          <p className="mt-6 text-center text-[15px] text-slate-700 dark:text-slate-300">
+          <p className="mt-6 text-center text-[15px] text-muted">
             種目がありません。「設定」タブから登録してください。
           </p>
         ) : (
           <>
+            <div className="mb-2 flex justify-end">
+              <button
+                onClick={() => {
+                  if (gridScrollRef.current)
+                    gridScrollRef.current.scrollLeft =
+                      gridScrollRef.current.scrollWidth;
+                }}
+                className="rounded-full border border-card-border px-3 py-1 text-[13px] font-medium text-muted"
+              >
+                今日へ
+              </button>
+            </div>
             {/* 種目名は固定・日付部分のみ横スクロール */}
             <div
               ref={gridScrollRef}
-              className="mt-3 overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+              className="mt-3 overflow-x-auto rounded-2xl border border-card-border bg-card-bg dark:border-slate-800 dark:bg-slate-900"
             >
               <div style={{ minWidth: NAME_W + gridDays.length * CELL_W }}>
                 {/* 日付ヘッダー */}
-                <div className="flex items-stretch border-b border-slate-200 dark:border-slate-800">
+                <div className="flex items-stretch border-b border-card-border dark:border-slate-800">
                   <div
-                    className="sticky left-0 z-20 flex items-center border-r border-slate-200 bg-white px-3 py-2 text-[15px] font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                    className="sticky left-0 z-20 flex items-center border-r border-card-border bg-card-bg px-3 py-2 text-[15px] font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
                     style={{ width: NAME_W }}
                   >
                     種目
@@ -1095,15 +1122,15 @@ export default function TrainingLog() {
                               ? "text-red-500"
                               : wd === 6
                                 ? "text-blue-500"
-                                : "text-slate-600 dark:text-slate-400"
+                                : "text-muted"
                           }`}
                         >
                           {WD[wd]}
                         </div>
                         <div
-                          className={`mx-auto mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[14px] font-bold ${
+                          className={`mx-auto mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[14px] font-semibold ${
                             isToday
-                              ? "bg-blue-600 text-white"
+                              ? "bg-accent text-white"
                               : "text-slate-800 dark:text-slate-100"
                           }`}
                         >
@@ -1123,7 +1150,7 @@ export default function TrainingLog() {
                       className="flex items-stretch border-b border-slate-100 last:border-b-0 dark:border-slate-800"
                     >
                       <div
-                        className="sticky left-0 z-10 flex items-center gap-1.5 border-r border-slate-200 bg-white px-2 py-2 dark:border-slate-800 dark:bg-slate-900"
+                        className="sticky left-0 z-10 flex items-center gap-1.5 border-r border-card-border bg-card-bg px-2 py-2 dark:border-slate-800 dark:bg-slate-900"
                         style={{ width: NAME_W }}
                       >
                         <span
@@ -1134,7 +1161,7 @@ export default function TrainingLog() {
                           <span className="block truncate text-[15px] font-medium text-slate-900 dark:text-slate-100">
                             {it.name}
                           </span>
-                          <span className="block text-[12px] text-slate-600 dark:text-slate-400">
+                          <span className="block text-[12px] text-muted">
                             7日 {it.unit === "time" ? `${fmtHours(sum)}h` : `${sum}回`}
                           </span>
                         </span>
@@ -1154,7 +1181,7 @@ export default function TrainingLog() {
                             style={{ width: CELL_W }}
                           >
                             <span
-                              className="flex h-8 min-w-8 items-center justify-center rounded-lg px-1 text-[13px] font-bold"
+                              className="flex h-8 min-w-8 items-center justify-center rounded-lg px-1 text-[13px] font-semibold"
                               style={
                                 val
                                   ? { backgroundColor: it.color, color: "#fff" }
@@ -1182,7 +1209,7 @@ export default function TrainingLog() {
           onClick={() => setEditing(null)}
         >
           <div
-            className="w-full max-w-sm rounded-2xl bg-white p-5 dark:bg-slate-900"
+            className="w-full max-w-sm rounded-2xl bg-card-bg p-5 dark:bg-slate-900"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
@@ -1191,10 +1218,10 @@ export default function TrainingLog() {
                 style={{ backgroundColor: editingItem.color }}
               />
               <div>
-                <div className="text-[16px] font-bold text-slate-900 dark:text-slate-100">
+                <div className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
                   {editingItem.name}
                 </div>
-                <div className="text-[13px] text-slate-600 dark:text-slate-400">
+                <div className="text-[13px] text-muted">
                   {editing.date.getMonth() + 1}/{editing.date.getDate()}（
                   {WD[editing.date.getDay()]}）
                 </div>
@@ -1234,7 +1261,7 @@ export default function TrainingLog() {
 
             <button
               onClick={applyEditor}
-              className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-2.5 text-[16px] font-bold text-white active:bg-blue-700"
+              className="mt-5 w-full rounded-xl bg-accent px-4 py-2.5 text-[16px] font-semibold text-white active:opacity-90"
             >
               保存
             </button>

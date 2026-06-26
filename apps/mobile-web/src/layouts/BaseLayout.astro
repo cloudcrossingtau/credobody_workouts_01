@@ -17,12 +17,8 @@ const { title = "トレーニング記録" } = Astro.props;
     <link rel="apple-touch-icon" href="/icon.png" />
     <meta name="apple-mobile-web-app-title" content="CredoBody" />
   </head>
-  <body
-    class="min-h-dvh bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100"
-  >
-    <main
-      class="mx-auto max-w-md px-4 pb-10 pt-[max(1.5rem,var(--safe-top))]"
-    >
+  <body class="min-h-dvh bg-background text-foreground antialiased">
+    <main class="mx-auto max-w-md px-4 pb-10">
       <slot />
     </main>
   </body>

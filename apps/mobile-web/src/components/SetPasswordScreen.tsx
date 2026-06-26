@@ -33,11 +33,11 @@ export default function SetPasswordScreen({ onDone }: { onDone: () => void }) {
 
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center">
-      <div className="w-full max-w-sm rounded-2xl border border-slate-200 bg-white p-6 dark:border-slate-800 dark:bg-slate-900">
-        <h1 className="text-center text-xl font-bold text-slate-900 dark:text-slate-100">
+      <div className="w-full max-w-sm rounded-2xl border border-card-border bg-card-bg p-6 dark:border-slate-800 dark:bg-slate-900">
+        <h1 className="text-center text-xl font-semibold text-slate-900 dark:text-slate-100">
           パスワードを設定
         </h1>
-        <p className="mt-2 text-center text-[14px] text-slate-600 dark:text-slate-400">
+        <p className="mt-2 text-center text-[14px] text-muted">
           ログイン用のパスワードを設定してください。
         </p>
         <div className="mt-4 space-y-3">
@@ -67,7 +67,7 @@ export default function SetPasswordScreen({ onDone }: { onDone: () => void }) {
         <button
           onClick={submit}
           disabled={busy}
-          className="mt-5 w-full rounded-xl bg-blue-600 px-4 py-3 text-[16px] font-bold text-white active:bg-blue-700 disabled:opacity-50"
+          className="mt-5 w-full rounded-xl bg-accent px-4 py-3 text-[16px] font-semibold text-white active:opacity-90 disabled:opacity-50"
         >
           {busy ? "設定中…" : "設定して開始"}
         </button>
