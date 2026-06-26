@@ -189,6 +189,8 @@ export default function TrainingLog() {
     const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
       if (event === "PASSWORD_RECOVERY") setNeedsPassword(true);
+      // ログアウト/ログイン時はホームに戻す（前回のビューが残らないように）
+      if (event === "SIGNED_OUT" || event === "SIGNED_IN") setView("grid");
     });
     return () => sub.subscription.unsubscribe();
   }, []);
