@@ -70,7 +70,7 @@ export default function AuthScreen() {
     <div className="flex min-h-[70vh] flex-col items-center justify-center">
       <div className="w-full max-w-sm rounded-2xl border border-card-border bg-card-bg p-6 dark:border-slate-800 dark:bg-slate-900">
         <h1 className="text-center text-xl font-semibold text-slate-900 dark:text-slate-100">
-          トレーニング記録
+          CredoBodyRise
         </h1>
 
         {/* ログイン / 新規登録 トグル（招待制では新規登録を非表示） */}

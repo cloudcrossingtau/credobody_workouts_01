@@ -1121,7 +1121,7 @@ export default function TrainingLog() {
             <div className="flex items-center gap-2">
               <img src="/icon.png" alt="" className="h-7 w-7" />
               <span className="text-[17px] font-semibold text-foreground">
-                CredoBody
+                CredoBodyRise
               </span>
             </div>
             {supabase && session && (
