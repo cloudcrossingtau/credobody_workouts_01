@@ -1,5 +1,21 @@
 import { supabase } from "./supabase";
 
+// crypto.randomUUID はセキュアコンテキスト(HTTPS/localhost)限定。
+// 実機の平文HTTP(LAN IP)でも動くようフォールバックを用意。
+function uuid(): string {
+  if (
+    typeof crypto !== "undefined" &&
+    typeof crypto.randomUUID === "function"
+  ) {
+    return crypto.randomUUID();
+  }
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0;
+    const v = c === "x" ? r : (r & 0x3) | 0x8;
+    return v.toString(16);
+  });
+}
+
 export type Profile = {
   id: string;
   email: string | null;
@@ -62,7 +78,7 @@ export async function uploadAvatar(blob: Blob): Promise<string> {
   const { data: u } = await supabase.auth.getUser();
   const uid = u.user?.id;
   if (!uid) throw new Error("未ログイン");
-  const path = `${uid}/${crypto.randomUUID()}.png`;
+  const path = `${uid}/${uuid()}.png`;
   const { error } = await supabase.storage
     .from("avatars")
     .upload(path, blob, { upsert: false, contentType: "image/png" });
