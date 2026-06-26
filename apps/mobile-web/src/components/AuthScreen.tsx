@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 
+// 招待制：PUBLIC_DISABLE_SIGNUP=true で新規登録UIを非表示にする
+const DISABLE_SIGNUP = import.meta.env.PUBLIC_DISABLE_SIGNUP === "true";
+
 // ログイン / 新規登録画面（メール＋パスワード）
 export default function AuthScreen() {
   const [mode, setMode] = useState<"login" | "signup">("login");
@@ -60,37 +63,39 @@ export default function AuthScreen() {
           トレーニング記録
         </h1>
 
-        {/* ログイン / 新規登録 トグル */}
-        <div className="mt-5 flex overflow-hidden rounded-lg border border-slate-300 dark:border-slate-600">
-          <button
-            onClick={() => {
-              setMode("login");
-              setErr(null);
-              setMsg(null);
-            }}
-            className={`flex-1 py-2 text-[15px] font-medium ${
-              mode === "login"
-                ? "bg-blue-600 text-white"
-                : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100"
-            }`}
-          >
-            ログイン
-          </button>
-          <button
-            onClick={() => {
-              setMode("signup");
-              setErr(null);
-              setMsg(null);
-            }}
-            className={`flex-1 py-2 text-[15px] font-medium ${
-              mode === "signup"
-                ? "bg-blue-600 text-white"
-                : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100"
-            }`}
-          >
-            新規登録
-          </button>
-        </div>
+        {/* ログイン / 新規登録 トグル（招待制では新規登録を非表示） */}
+        {!DISABLE_SIGNUP && (
+          <div className="mt-5 flex overflow-hidden rounded-lg border border-slate-300 dark:border-slate-600">
+            <button
+              onClick={() => {
+                setMode("login");
+                setErr(null);
+                setMsg(null);
+              }}
+              className={`flex-1 py-2 text-[15px] font-medium ${
+                mode === "login"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100"
+              }`}
+            >
+              ログイン
+            </button>
+            <button
+              onClick={() => {
+                setMode("signup");
+                setErr(null);
+                setMsg(null);
+              }}
+              className={`flex-1 py-2 text-[15px] font-medium ${
+                mode === "signup"
+                  ? "bg-blue-600 text-white"
+                  : "bg-white text-slate-800 dark:bg-slate-800 dark:text-slate-100"
+              }`}
+            >
+              新規登録
+            </button>
+          </div>
+        )}
 
         <div className="mt-4 space-y-3">
           <input

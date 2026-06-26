@@ -8,6 +8,7 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import AuthScreen from "./AuthScreen";
+import SetPasswordScreen from "./SetPasswordScreen";
 
 // ---- 型 ----
 type Unit = "time" | "count"; // time=実施時間(分) / count=種目数(回)
@@ -128,6 +129,13 @@ export default function TrainingLog() {
   // 認証（Supabase 設定時のみ有効。未設定ならローカルのみで動作）
   const [session, setSession] = useState<Session | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
+  const [myRole, setMyRole] = useState<string | null>(null);
+  // 招待メール/再設定リンク経由＝初回パスワード設定が必要
+  const [needsPassword, setNeedsPassword] = useState(false);
+  // 招待フォーム
+  const [inviteEmail, setInviteEmail] = useState("");
+  const [inviteMsg, setInviteMsg] = useState<string | null>(null);
+  const [inviteBusy, setInviteBusy] = useState(false);
 
   // セル編集モーダル
   const [editing, setEditing] = useState<{ itemId: string; date: Date } | null>(
@@ -155,15 +163,60 @@ export default function TrainingLog() {
       setAuthChecked(true);
       return;
     }
+    // 招待/パスワード再設定リンク経由かどうか（URLハッシュで判定）
+    if (
+      typeof window !== "undefined" &&
+      /type=(invite|recovery)/.test(window.location.hash)
+    ) {
+      setNeedsPassword(true);
+    }
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setAuthChecked(true);
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+    const { data: sub } = supabase.auth.onAuthStateChange((event, s) => {
       setSession(s);
+      if (event === "PASSWORD_RECOVERY") setNeedsPassword(true);
     });
     return () => sub.subscription.unsubscribe();
   }, []);
+
+  // ログイン中ユーザーの role を取得
+  useEffect(() => {
+    if (!supabase || !session) {
+      setMyRole(null);
+      return;
+    }
+    supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", session.user.id)
+      .single()
+      .then(({ data }) => setMyRole(data?.role ?? null));
+  }, [session]);
+
+  async function invite() {
+    if (!supabase) return;
+    const email = inviteEmail.trim();
+    if (!email) return;
+    setInviteBusy(true);
+    setInviteMsg(null);
+    try {
+      const { error } = await supabase.functions.invoke("invite-user", {
+        body: { email, redirectTo: window.location.origin },
+      });
+      if (error) throw error;
+      setInviteMsg(`${email} に招待メールを送信しました。`);
+      setInviteEmail("");
+    } catch (e) {
+      setInviteMsg(
+        "招待に失敗しました：" +
+          (e instanceof Error ? e.message : "不明なエラー"),
+      );
+    } finally {
+      setInviteBusy(false);
+    }
+  }
 
   // 初期ロード
   useEffect(() => {
@@ -368,13 +421,25 @@ export default function TrainingLog() {
   );
 
   // ===================== 認証ゲート =====================
-  // Supabase 設定時のみ。未ログインならログイン/登録画面、確認中はローディング。
+  // Supabase 設定時のみ。未ログインならログイン画面、招待リンク経由ならパスワード設定。
   if (supabase) {
     if (!authChecked) {
       return (
         <div className="py-24 text-center text-[15px] text-slate-600 dark:text-slate-400">
           読み込み中…
         </div>
+      );
+    }
+    if (session && needsPassword) {
+      return (
+        <SetPasswordScreen
+          onDone={() => {
+            setNeedsPassword(false);
+            if (typeof window !== "undefined") {
+              history.replaceState(null, "", window.location.pathname);
+            }
+          }}
+        />
       );
     }
     if (!session) {
@@ -611,6 +676,37 @@ export default function TrainingLog() {
             </div>
           </section>
 
+          {/* ユーザー招待（管理者/開発者のみ） */}
+          {supabase && session && (myRole === "admin" || myRole === "developer") && (
+            <section className="mt-7">
+              <h2 className="text-[16px] font-bold text-slate-900 dark:text-slate-100">
+                ユーザー招待
+              </h2>
+              <div className="mt-2 flex gap-2">
+                <input
+                  type="email"
+                  inputMode="email"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  placeholder="招待するメールアドレス"
+                  className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                />
+                <button
+                  onClick={invite}
+                  disabled={inviteBusy}
+                  className="shrink-0 rounded-xl bg-blue-600 px-4 py-2.5 text-[15px] font-bold text-white active:bg-blue-700 disabled:opacity-50"
+                >
+                  {inviteBusy ? "送信中…" : "招待"}
+                </button>
+              </div>
+              {inviteMsg && (
+                <p className="mt-2 text-[14px] text-slate-700 dark:text-slate-300">
+                  {inviteMsg}
+                </p>
+              )}
+            </section>
+          )}
+
           {/* アカウント */}
           {supabase && session && (
             <section className="mt-7">
@@ -619,6 +715,7 @@ export default function TrainingLog() {
               </h2>
               <p className="mt-2 text-[14px] text-slate-700 dark:text-slate-300">
                 {session.user.email}
+                {myRole ? `（${myRole}）` : ""}
               </p>
               <button
                 onClick={() => supabase?.auth.signOut()}
