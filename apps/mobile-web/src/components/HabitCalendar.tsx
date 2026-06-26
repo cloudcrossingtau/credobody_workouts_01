@@ -205,7 +205,20 @@ export default function TrainingLog() {
       const { error } = await supabase.functions.invoke("invite-user", {
         body: { email, redirectTo: window.location.origin },
       });
-      if (error) throw error;
+      if (error) {
+        // Edge Function が返した本当のエラー本文を取り出す
+        let detail = error.message;
+        const ctx = (error as { context?: Response }).context;
+        if (ctx && typeof ctx.json === "function") {
+          try {
+            const b = await ctx.json();
+            if (b?.error) detail = b.error;
+          } catch {
+            /* 本文がJSONでない場合は message のまま */
+          }
+        }
+        throw new Error(detail);
+      }
       setInviteMsg(`${email} に招待メールを送信しました。`);
       setInviteEmail("");
     } catch (e) {
