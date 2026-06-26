@@ -5,6 +5,9 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
+import type { Session } from "@supabase/supabase-js";
+import { supabase } from "@/lib/supabase";
+import AuthScreen from "./AuthScreen";
 
 // ---- 型 ----
 type Unit = "time" | "count"; // time=実施時間(分) / count=種目数(回)
@@ -122,6 +125,10 @@ export default function TrainingLog() {
   const [loaded, setLoaded] = useState(false);
   const [view, setView] = useState<"grid" | "settings" | "charts">("grid");
 
+  // 認証（Supabase 設定時のみ有効。未設定ならローカルのみで動作）
+  const [session, setSession] = useState<Session | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
+
   // セル編集モーダル
   const [editing, setEditing] = useState<{ itemId: string; date: Date } | null>(
     null,
@@ -141,6 +148,22 @@ export default function TrainingLog() {
   const timeWeeklyRef = useRef<HTMLDivElement>(null);
   const countDailyRef = useRef<HTMLDivElement>(null);
   const countWeeklyRef = useRef<HTMLDivElement>(null);
+
+  // 認証セッションの監視
+  useEffect(() => {
+    if (!supabase) {
+      setAuthChecked(true);
+      return;
+    }
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setAuthChecked(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
 
   // 初期ロード
   useEffect(() => {
@@ -343,6 +366,21 @@ export default function TrainingLog() {
       </div>
     </nav>
   );
+
+  // ===================== 認証ゲート =====================
+  // Supabase 設定時のみ。未ログインならログイン/登録画面、確認中はローディング。
+  if (supabase) {
+    if (!authChecked) {
+      return (
+        <div className="py-24 text-center text-[15px] text-slate-600 dark:text-slate-400">
+          読み込み中…
+        </div>
+      );
+    }
+    if (!session) {
+      return <AuthScreen />;
+    }
+  }
 
   // ===================== 設定ビュー =====================
   if (view === "settings") {
@@ -572,6 +610,24 @@ export default function TrainingLog() {
               </button>
             </div>
           </section>
+
+          {/* アカウント */}
+          {supabase && session && (
+            <section className="mt-7">
+              <h2 className="text-[16px] font-bold text-slate-900 dark:text-slate-100">
+                アカウント
+              </h2>
+              <p className="mt-2 text-[14px] text-slate-700 dark:text-slate-300">
+                {session.user.email}
+              </p>
+              <button
+                onClick={() => supabase?.auth.signOut()}
+                className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-[15px] font-medium text-slate-800 dark:border-slate-600 dark:text-slate-100"
+              >
+                ログアウト
+              </button>
+            </section>
+          )}
         </div>
         {tabBar}
       </>
