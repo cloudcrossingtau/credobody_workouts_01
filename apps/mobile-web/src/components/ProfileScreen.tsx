@@ -134,7 +134,7 @@ export default function ProfileScreen({
           {!editing && (
             <button
               onClick={() => setEditing(true)}
-              className="rounded-full border border-card-border px-3 py-1 text-[14px] font-medium text-accent"
+              className="rounded-full border border-slate-300 bg-card-bg px-3 py-1 text-[14px] font-medium text-accent"
             >
               編集
             </button>
@@ -171,7 +171,7 @@ export default function ProfileScreen({
             <button
               onClick={() => fileRef.current?.click()}
               disabled={avatarBusy}
-              className="rounded-lg border border-card-border px-3 py-1.5 text-[14px] font-medium text-foreground disabled:opacity-50"
+              className="rounded-lg border border-slate-300 bg-card-bg px-3 py-1.5 text-[14px] font-medium text-foreground disabled:opacity-50"
             >
               {avatarBusy ? "処理中…" : "画像を変更"}
             </button>
@@ -179,7 +179,7 @@ export default function ProfileScreen({
               <button
                 onClick={clearAvatar}
                 disabled={avatarBusy}
-                className="rounded-lg border border-red-300 px-3 py-1.5 text-[14px] font-medium text-red-600 disabled:opacity-50 dark:border-red-800 dark:text-red-400"
+                className="rounded-lg border border-red-300 bg-card-bg px-3 py-1.5 text-[14px] font-medium text-red-600 disabled:opacity-50 dark:border-red-800 dark:text-red-400"
               >
                 削除
               </button>
@@ -205,7 +205,7 @@ export default function ProfileScreen({
             value={nickname}
             onChange={(e) => setNickname(e.target.value)}
             placeholder="例：たうち"
-            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            className="mt-2 w-full rounded-lg border border-slate-300 bg-card-bg px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           />
         ) : (
           <p className="mt-2 text-[16px] text-foreground">
@@ -251,7 +251,7 @@ export default function ProfileScreen({
           <button
             onClick={cancelEdit}
             disabled={saving}
-            className="flex-1 rounded-xl border border-card-border px-4 py-3 text-[16px] font-medium text-foreground"
+            className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-3 text-[16px] font-medium text-foreground"
           >
             キャンセル
           </button>
@@ -260,7 +260,7 @@ export default function ProfileScreen({
         supabase && (
           <button
             onClick={() => supabase?.auth.signOut()}
-            className="mt-8 w-full rounded-xl border border-card-border px-4 py-2.5 text-[15px] font-medium text-foreground"
+            className="mt-8 w-full rounded-xl border border-red-300 bg-card-bg px-4 py-2.5 text-[15px] font-semibold text-red-600 dark:border-red-800 dark:text-red-400"
           >
             ログアウト
           </button>

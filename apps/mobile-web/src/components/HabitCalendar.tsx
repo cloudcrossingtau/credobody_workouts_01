@@ -528,7 +528,7 @@ export default function TrainingLog() {
               {!settingsEditing && (
                 <button
                   onClick={enterSettingsEdit}
-                  className="rounded-full border border-card-border px-3 py-1 text-[14px] font-medium text-accent"
+                  className="rounded-full border border-slate-300 bg-card-bg px-3 py-1 text-[14px] font-medium text-accent"
                 >
                   編集
                 </button>
@@ -605,7 +605,7 @@ export default function TrainingLog() {
                       value={it.name}
                       onChange={(e) => updateItem(it.id, { name: e.target.value })}
                       placeholder="項目名"
-                      className="min-w-0 flex-1 rounded-lg border border-slate-300 px-2.5 py-2 text-[15px] font-medium text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                      className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-card-bg px-2.5 py-2 text-[15px] font-medium text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                     />
                     {/* 削除 */}
                     <button
@@ -685,7 +685,7 @@ export default function TrainingLog() {
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 placeholder="項目名（例：水泳）"
-                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                className="mt-2 w-full rounded-lg border border-slate-300 bg-card-bg px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               />
               <p className="mt-3 text-[15px] font-medium text-slate-800 dark:text-slate-200">
                 記録の単位
@@ -749,7 +749,7 @@ export default function TrainingLog() {
             </button>
             <button
               onClick={cancelSettingsEdit}
-              className="flex-1 rounded-xl border border-card-border px-4 py-2.5 text-[16px] font-medium text-foreground"
+              className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-2.5 text-[16px] font-medium text-foreground"
             >
               キャンセル
             </button>
@@ -804,13 +804,13 @@ export default function TrainingLog() {
             <div className="mt-2 flex gap-2">
               <button
                 onClick={loadDemo}
-                className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-[15px] font-medium text-slate-800 dark:border-slate-600 dark:text-slate-100"
+                className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-2.5 text-[15px] font-medium text-slate-800 dark:border-slate-600 dark:text-slate-100"
               >
                 デモ用データを投入
               </button>
               <button
                 onClick={clearAllMinutes}
-                className="flex-1 rounded-xl border border-red-300 px-4 py-2.5 text-[15px] font-medium text-red-600 dark:border-red-800 dark:text-red-400"
+                className="flex-1 rounded-xl border border-red-300 bg-card-bg px-4 py-2.5 text-[15px] font-medium text-red-600 dark:border-red-800 dark:text-red-400"
               >
                 全記録を削除
               </button>
@@ -830,7 +830,7 @@ export default function TrainingLog() {
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   placeholder="招待するメールアドレス"
-                  className="min-w-0 flex-1 rounded-lg border border-slate-300 px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                  className="min-w-0 flex-1 rounded-lg border border-slate-300 bg-card-bg px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
                 />
                 <button
                   onClick={invite}
@@ -1168,7 +1168,7 @@ export default function TrainingLog() {
                     gridScrollRef.current.scrollLeft =
                       gridScrollRef.current.scrollWidth;
                 }}
-                className="rounded-full border border-card-border px-3 py-1 text-[13px] font-medium text-muted"
+                className="rounded-full border border-slate-300 bg-card-bg px-3 py-1 text-[13px] font-medium text-muted"
               >
                 今日へ
               </button>
@@ -1323,7 +1323,7 @@ export default function TrainingLog() {
                 onChange={(e) => setEditVal(e.target.value)}
                 placeholder="0"
                 autoFocus
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[18px] font-semibold text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+                className="w-full rounded-lg border border-slate-300 bg-card-bg px-3 py-2.5 text-[18px] font-semibold text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
               />
               <span className="text-[16px] font-medium text-slate-700 dark:text-slate-300">
                 {editingItem.unit === "time" ? "分" : "回"}
@@ -1354,13 +1354,13 @@ export default function TrainingLog() {
             <div className="mt-2 flex gap-2">
               <button
                 onClick={clearEditor}
-                className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-[16px] font-medium text-slate-800 dark:border-slate-600 dark:text-slate-100"
+                className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-2.5 text-[16px] font-medium text-slate-800 dark:border-slate-600 dark:text-slate-100"
               >
                 クリア
               </button>
               <button
                 onClick={() => setEditing(null)}
-                className="flex-1 rounded-xl border border-slate-300 px-4 py-2.5 text-[16px] font-medium text-slate-800 dark:border-slate-600 dark:text-slate-100"
+                className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-2.5 text-[16px] font-medium text-slate-800 dark:border-slate-600 dark:text-slate-100"
               >
                 キャンセル
               </button>

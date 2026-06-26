@@ -105,7 +105,7 @@ export default function AuthScreen() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="メールアドレス"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            className="w-full rounded-lg border border-slate-300 bg-card-bg px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           />
           <input
             type="password"
@@ -116,7 +116,7 @@ export default function AuthScreen() {
               if (e.key === "Enter") submit();
             }}
             placeholder="パスワード（6文字以上）"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            className="w-full rounded-lg border border-slate-300 bg-card-bg px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           />
         </div>
 

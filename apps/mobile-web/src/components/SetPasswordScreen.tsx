@@ -47,7 +47,7 @@ export default function SetPasswordScreen({ onDone }: { onDone: () => void }) {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="新しいパスワード（6文字以上）"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            className="w-full rounded-lg border border-slate-300 bg-card-bg px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           />
           <input
             type="password"
@@ -58,7 +58,7 @@ export default function SetPasswordScreen({ onDone }: { onDone: () => void }) {
               if (e.key === "Enter") submit();
             }}
             placeholder="パスワード（確認）"
-            className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            className="w-full rounded-lg border border-slate-300 bg-card-bg px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
           />
         </div>
         {err && (
