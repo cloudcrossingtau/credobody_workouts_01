@@ -45,11 +45,10 @@ export default function ProfileScreen({
     setErr(null);
     try {
       await updateMyProfile({ nickname: nickname.trim() || null });
-      setMsg("保存しました");
       onChanged?.();
+      onBack(); // 保存できたらホームへ戻る
     } catch (e) {
       setErr(e instanceof Error ? e.message : "保存に失敗しました");
-    } finally {
       setSaving(false);
     }
   }
