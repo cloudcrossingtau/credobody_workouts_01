@@ -7,8 +7,10 @@ import {
 } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
+import { getMyProfile, getAvatarUrl } from "@/lib/profile";
 import AuthScreen from "./AuthScreen";
 import SetPasswordScreen from "./SetPasswordScreen";
+import ProfileScreen from "./ProfileScreen";
 
 // ---- 型 ----
 type Unit = "time" | "count"; // time=実施時間(分) / count=種目数(回)
@@ -124,12 +126,15 @@ export default function TrainingLog() {
   const [minutes, setMinutes] = useState<Minutes>({});
   const [weekStart, setWeekStart] = useState<number>(1); // 0=日..6=土（既定=月）
   const [loaded, setLoaded] = useState(false);
-  const [view, setView] = useState<"grid" | "settings" | "charts">("grid");
+  const [view, setView] = useState<
+    "grid" | "settings" | "charts" | "profile"
+  >("grid");
 
   // 認証（Supabase 設定時のみ有効。未設定ならローカルのみで動作）
   const [session, setSession] = useState<Session | null>(null);
   const [authChecked, setAuthChecked] = useState(false);
   const [myRole, setMyRole] = useState<string | null>(null);
+  const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
   // 招待メール/再設定リンク経由＝初回パスワード設定が必要
   const [needsPassword, setNeedsPassword] = useState(false);
   // 招待フォーム
@@ -181,18 +186,20 @@ export default function TrainingLog() {
     return () => sub.subscription.unsubscribe();
   }, []);
 
-  // ログイン中ユーザーの role を取得
+  // ログイン中ユーザーのプロフィール（role / アバター）を取得
+  function refreshProfile() {
+    getMyProfile().then((p) => {
+      setMyRole(p?.role ?? null);
+      setMyAvatarUrl(getAvatarUrl(p?.avatar_path ?? null));
+    });
+  }
   useEffect(() => {
     if (!supabase || !session) {
       setMyRole(null);
+      setMyAvatarUrl(null);
       return;
     }
-    supabase
-      .from("profiles")
-      .select("role")
-      .eq("id", session.user.id)
-      .single()
-      .then(({ data }) => setMyRole(data?.role ?? null));
+    refreshProfile();
   }, [session]);
 
   async function invite() {
@@ -458,6 +465,19 @@ export default function TrainingLog() {
     if (!session) {
       return <AuthScreen />;
     }
+  }
+
+  // ===================== プロフィールビュー =====================
+  if (view === "profile") {
+    return (
+      <>
+        <ProfileScreen
+          onBack={() => setView("grid")}
+          onChanged={refreshProfile}
+        />
+        {tabBar}
+      </>
+    );
   }
 
   // ===================== 設定ビュー =====================
@@ -991,7 +1011,38 @@ export default function TrainingLog() {
   return (
     <>
       <div className="pb-24">
-        <h1 className="text-center text-xl font-bold">トレーニング記録</h1>
+        {/* ヘッダー（中央タイトル＋右にユーザーアイコン） */}
+        <div className="relative flex items-center justify-center">
+          <h1 className="text-xl font-bold">トレーニング記録</h1>
+          {supabase && session && (
+            <button
+              onClick={() => setView("profile")}
+              className="absolute right-0 h-9 w-9 overflow-hidden rounded-full bg-slate-200 ring-1 ring-slate-300 dark:bg-slate-700 dark:ring-slate-600"
+              aria-label="プロフィール"
+            >
+              {myAvatarUrl ? (
+                <img
+                  src={myAvatarUrl}
+                  alt="プロフィール"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="flex h-full w-full items-center justify-center text-slate-500 dark:text-slate-300">
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    className="h-5 w-5"
+                  >
+                    <circle cx="12" cy="8" r="4" />
+                    <path d="M4 20c0-4 4-6 8-6s8 2 8 6" />
+                  </svg>
+                </span>
+              )}
+            </button>
+          )}
+        </div>
 
         {items.length === 0 ? (
           <p className="mt-6 text-center text-[15px] text-slate-700 dark:text-slate-300">
