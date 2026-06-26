@@ -149,7 +149,7 @@ training-app/
 │     ├ .env / .env.example / astro.config.mjs / package.json / tsconfig.json
 │     └ src/{pages,layouts,components,lib,styles}
 │        └ components/HabitCalendar.tsx   ← 本体
-├ supabase/migrations/0001_init_habits.sql / seed.sql
+├ supabase/migrations/20260626120000_baseline_training.sql / seed.sql
 └ docs/kickoff.md
 ```
 
@@ -157,9 +157,19 @@ training-app/
 
 - ~~**フェーズ2: 設定画面**~~ ✅ 実装済み（第2節参照）。
 - ~~**フェーズ3: グラフ2種**~~ ✅ 実装済み（第2節参照。手書きイメージ `apps/work/IMG_4022（大）.jpeg` 準拠）。
-- **フェーズ4: Supabase 連携 + 認証** — `0001_init_habits.sql` をトレーニング項目用に
-  見直して適用し、保存先を localStorage → `lib/supabase.ts` 経由へ。
-  ※ オフライン要件（電波問題）があるため、ローカル保存を主・同期を従とする設計を検討。
+- **フェーズ4: Supabase 連携 + 認証**（着手中 2026-06-26）
+  - **dev/prod 分離**は nouker と同方式：**ホスト型 Supabase を2プロジェクト**作成し、
+    `.env` の `PUBLIC_SUPABASE_URL/ANON_KEY`（既定=dev）と `_PROD` 控えを env で切替。
+    Vercel 本番は Dashboard の env vars（=prod）を使用。ローカルSupabaseスタックは使わない。
+  - **方針（ステークホルダー確定）**: ①保存は**ローカル優先＋オンライン時に同期**（電波対策）。
+    ②**ユーザー登録(signup)＋メール/パスログイン**。③将来トレーナー⇔利用者の相互参照
+    （`role: client/trainer` + 紐付け）→ 設計は**最初から user_id 所有＋RLS**。
+  - **スキーマ作成済み**: `supabase/migrations/20260626120000_baseline_training.sql`
+    （`profiles`(role/week_start) / `training_items`(unit) / `training_records`、
+    全テーブル user_id 所有の RLS、新規ユーザートリガー `handle_new_user`）。旧 habit схема削除。
+  - 残：(a) ユーザーが Supabase で dev/prod プロジェクト作成→ `.env` に dev の URL/anon key、
+    (b) `supabase login` → 各プロジェクトに `supabase link` → `db push`、
+    (c) 認証UI（signup/login）、(d) ローカル⇔Supabase 同期層（localStorage を維持しつつ同期）。
 - **本人に見せて FB**。
 - （必要なら）**Capacitor でネイティブ化**（主目的=オフライン/電波対策）。
   - ★ Capacitor 化時は `astro.config` を `build: { format: "file" }` に（第7節参照）。
