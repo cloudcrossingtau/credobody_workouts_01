@@ -1,8 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 
 // 招待制：PUBLIC_DISABLE_SIGNUP=true で新規登録UIを非表示にする
 const DISABLE_SIGNUP = import.meta.env.PUBLIC_DISABLE_SIGNUP === "true";
+// 最後にログインに使ったメールを保持するキー
+const LS_EMAIL = "credobody.email";
 
 // ログイン / 新規登録画面（メール＋パスワード）
 export default function AuthScreen() {
@@ -12,6 +14,12 @@ export default function AuthScreen() {
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+
+  // 前回のメールをプリフィル（クライアントのみ）
+  useEffect(() => {
+    const saved = localStorage.getItem(LS_EMAIL);
+    if (saved) setEmail(saved);
+  }, []);
 
   async function submit() {
     if (!supabase) return;
@@ -28,6 +36,8 @@ export default function AuthScreen() {
     }
     setBusy(true);
     try {
+      // 次回のためにメールを保存
+      localStorage.setItem(LS_EMAIL, em);
       if (mode === "login") {
         const { error } = await supabase.auth.signInWithPassword({
           email: em,
