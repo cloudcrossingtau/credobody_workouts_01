@@ -30,6 +30,7 @@ export default function ProfileScreen({
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [cropFile, setCropFile] = useState<File | null>(null);
+  const [editing, setEditing] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -45,12 +46,21 @@ export default function ProfileScreen({
     setErr(null);
     try {
       await updateMyProfile({ nickname: nickname.trim() || null });
+      setProfile((p) => (p ? { ...p, nickname: nickname.trim() || null } : p));
       onChanged?.();
-      onBack(); // 保存できたらホームへ戻る
+      setEditing(false); // 保存できたら参照モードへ戻る
     } catch (e) {
       setErr(e instanceof Error ? e.message : "保存に失敗しました");
+    } finally {
       setSaving(false);
     }
+  }
+
+  function cancelEdit() {
+    setNickname(profile?.nickname ?? "");
+    setErr(null);
+    setMsg(null);
+    setEditing(false);
   }
 
   // 画像を選んだらクロップ画面を開く
@@ -107,17 +117,27 @@ export default function ProfileScreen({
         className="sticky top-0 z-30 -mx-4 mb-3 border-b border-card-border bg-background px-4"
         style={{ paddingTop: "var(--safe-top)" }}
       >
-        <div className="flex h-14 items-center gap-1">
-          <button
-            onClick={onBack}
-            aria-label="戻る"
-            className="-ml-1 px-1 text-[22px] leading-none text-foreground"
-          >
-            ‹
-          </button>
-          <span className="text-[17px] font-semibold text-foreground">
-            プロフィール
-          </span>
+        <div className="flex h-14 items-center justify-between">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={onBack}
+              aria-label="戻る"
+              className="-ml-1 px-1 text-[22px] leading-none text-foreground"
+            >
+              ‹
+            </button>
+            <span className="text-[17px] font-semibold text-foreground">
+              プロフィール
+            </span>
+          </div>
+          {!editing && (
+            <button
+              onClick={() => setEditing(true)}
+              className="rounded-full border border-card-border px-3 py-1 text-[14px] font-medium text-accent"
+            >
+              編集
+            </button>
+          )}
         </div>
       </header>
 
@@ -145,24 +165,26 @@ export default function ProfileScreen({
             </div>
           )}
         </div>
-        <div className="mt-3 flex gap-2">
-          <button
-            onClick={() => fileRef.current?.click()}
-            disabled={avatarBusy}
-            className="rounded-lg border border-slate-300 px-3 py-1.5 text-[14px] font-medium text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:text-slate-100"
-          >
-            {avatarBusy ? "処理中…" : "画像を変更"}
-          </button>
-          {profile?.avatar_path && (
+        {editing && (
+          <div className="mt-3 flex gap-2">
             <button
-              onClick={clearAvatar}
+              onClick={() => fileRef.current?.click()}
               disabled={avatarBusy}
-              className="rounded-lg border border-red-300 px-3 py-1.5 text-[14px] font-medium text-red-600 disabled:opacity-50 dark:border-red-800 dark:text-red-400"
+              className="rounded-lg border border-card-border px-3 py-1.5 text-[14px] font-medium text-foreground disabled:opacity-50"
             >
-              削除
+              {avatarBusy ? "処理中…" : "画像を変更"}
             </button>
-          )}
-        </div>
+            {profile?.avatar_path && (
+              <button
+                onClick={clearAvatar}
+                disabled={avatarBusy}
+                className="rounded-lg border border-red-300 px-3 py-1.5 text-[14px] font-medium text-red-600 disabled:opacity-50 dark:border-red-800 dark:text-red-400"
+              >
+                削除
+              </button>
+            )}
+          </div>
+        )}
         <input
           ref={fileRef}
           type="file"
@@ -174,15 +196,21 @@ export default function ProfileScreen({
 
       {/* 表示名 */}
       <section className="mt-7">
-        <label className="text-[15px] font-medium text-slate-800 dark:text-slate-200">
+        <label className="text-[15px] font-medium text-foreground">
           表示名（ニックネーム）
         </label>
-        <input
-          value={nickname}
-          onChange={(e) => setNickname(e.target.value)}
-          placeholder="例：たうち"
-          className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
-        />
+        {editing ? (
+          <input
+            value={nickname}
+            onChange={(e) => setNickname(e.target.value)}
+            placeholder="例：たうち"
+            className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+          />
+        ) : (
+          <p className="mt-2 text-[16px] text-foreground">
+            {profile?.nickname || "（未設定）"}
+          </p>
+        )}
       </section>
 
       {/* アカウント情報（参照のみ） */}
@@ -210,13 +238,24 @@ export default function ProfileScreen({
         </p>
       )}
 
-      <button
-        onClick={save}
-        disabled={saving}
-        className="mt-5 w-full rounded-xl bg-accent px-4 py-3 text-[16px] font-semibold text-white active:opacity-90 disabled:opacity-50"
-      >
-        {saving ? "保存中…" : "保存"}
-      </button>
+      {editing && (
+        <div className="mt-5 flex gap-2">
+          <button
+            onClick={save}
+            disabled={saving}
+            className="flex-1 rounded-xl bg-accent px-4 py-3 text-[16px] font-semibold text-white active:opacity-90 disabled:opacity-50"
+          >
+            {saving ? "保存中…" : "保存"}
+          </button>
+          <button
+            onClick={cancelEdit}
+            disabled={saving}
+            className="flex-1 rounded-xl border border-card-border px-4 py-3 text-[16px] font-medium text-foreground"
+          >
+            キャンセル
+          </button>
+        </div>
+      )}
 
       {cropFile && (
         <AvatarCropper

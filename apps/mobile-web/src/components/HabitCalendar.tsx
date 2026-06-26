@@ -154,6 +154,13 @@ export default function TrainingLog() {
   const [newName, setNewName] = useState("");
   const [newColor, setNewColor] = useState(COLOR_CHOICES[0]);
   const [newUnit, setNewUnit] = useState<Unit>("time");
+  // 設定: 参照/編集モード（編集前の状態をスナップショットして キャンセルで復元）
+  const [settingsEditing, setSettingsEditing] = useState(false);
+  const [settingsSnapshot, setSettingsSnapshot] = useState<{
+    items: Item[];
+    minutes: Minutes;
+    weekStart: number;
+  } | null>(null);
 
   // 横スクロール用ref（開いたら右端=最新へ）
   const gridScrollRef = useRef<HTMLDivElement>(null);
@@ -285,6 +292,14 @@ export default function TrainingLog() {
     if (view === "grid") toEnd(gridScrollRef);
   }, [view, weekStart, loaded, session, authChecked]);
 
+  // 設定タブから離れたら参照モードに戻す
+  useEffect(() => {
+    if (view !== "settings") {
+      setSettingsEditing(false);
+      setSettingsSnapshot(null);
+    }
+  }, [view]);
+
   const todayStr = ymd(new Date());
 
   // ---- セル入力 ----
@@ -370,6 +385,26 @@ export default function TrainingLog() {
   function clearAllMinutes() {
     if (!confirm("すべての記録を削除します。よろしいですか？")) return;
     setMinutes({});
+  }
+  function enterSettingsEdit() {
+    setSettingsSnapshot({ items, minutes, weekStart });
+    setSettingsEditing(true);
+    setColorPickerFor(null);
+  }
+  function saveSettingsEdit() {
+    setSettingsSnapshot(null);
+    setSettingsEditing(false);
+    setColorPickerFor(null);
+  }
+  function cancelSettingsEdit() {
+    if (settingsSnapshot) {
+      setItems(settingsSnapshot.items);
+      setMinutes(settingsSnapshot.minutes);
+      setWeekStart(settingsSnapshot.weekStart);
+    }
+    setSettingsSnapshot(null);
+    setSettingsEditing(false);
+    setColorPickerFor(null);
   }
 
   const editingItem = editing
@@ -486,13 +521,23 @@ export default function TrainingLog() {
             className="sticky top-0 z-30 -mx-4 mb-3 border-b border-card-border bg-background px-4"
             style={{ paddingTop: "var(--safe-top)" }}
           >
-            <div className="flex h-14 items-center">
+            <div className="flex h-14 items-center justify-between">
               <span className="text-[17px] font-semibold text-foreground">
                 設定
               </span>
+              {!settingsEditing && (
+                <button
+                  onClick={enterSettingsEdit}
+                  className="rounded-full border border-card-border px-3 py-1 text-[14px] font-medium text-accent"
+                >
+                  編集
+                </button>
+              )}
             </div>
           </header>
 
+          {settingsEditing ? (
+          <>
           {/* 週の開始曜日 */}
           <section className="mt-5">
             <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
@@ -694,6 +739,63 @@ export default function TrainingLog() {
             </div>
           </section>
 
+          {/* 保存 / キャンセル */}
+          <div className="mt-7 flex gap-2">
+            <button
+              onClick={saveSettingsEdit}
+              className="flex-1 rounded-xl bg-accent px-4 py-2.5 text-[16px] font-semibold text-white active:opacity-90"
+            >
+              保存
+            </button>
+            <button
+              onClick={cancelSettingsEdit}
+              className="flex-1 rounded-xl border border-card-border px-4 py-2.5 text-[16px] font-medium text-foreground"
+            >
+              キャンセル
+            </button>
+          </div>
+          </>
+          ) : (
+          <>
+          {/* 週の開始曜日（参照） */}
+          <section className="mt-1">
+            <h2 className="text-[16px] font-semibold text-foreground">
+              週の開始曜日
+            </h2>
+            <p className="mt-1.5 text-[15px] text-foreground">{WD[weekStart]}曜</p>
+          </section>
+
+          {/* トレーニング項目（参照） */}
+          <section className="mt-6">
+            <h2 className="text-[16px] font-semibold text-foreground">
+              トレーニング項目
+            </h2>
+            <div className="mt-2 overflow-hidden rounded-2xl border border-card-border bg-card-bg">
+              {items.map((it) => (
+                <div
+                  key={it.id}
+                  className="flex items-center gap-2.5 border-b border-card-border px-3 py-2.5 last:border-b-0"
+                >
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ backgroundColor: it.color }}
+                  />
+                  <span className="min-w-0 flex-1 truncate text-[15px] text-foreground">
+                    {it.name}
+                  </span>
+                  <span className="text-[13px] text-muted">
+                    {it.unit === "time" ? "時間" : "種目数"}
+                  </span>
+                </div>
+              ))}
+              {items.length === 0 && (
+                <p className="px-4 py-6 text-center text-[15px] text-muted">
+                  項目がありません。「編集」から追加してください。
+                </p>
+              )}
+            </div>
+          </section>
+
           {/* データ管理 */}
           <section className="mt-7">
             <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
@@ -763,6 +865,8 @@ export default function TrainingLog() {
                 ログアウト
               </button>
             </section>
+          )}
+          </>
           )}
         </div>
         {tabBar}
