@@ -4,10 +4,10 @@ import {
   updateMyProfile,
   uploadAvatar,
   removeAvatar,
-  resizeImage,
   getAvatarUrl,
   type Profile,
 } from "@/lib/profile";
+import AvatarCropper from "./AvatarCropper";
 
 const ROLE_LABEL: Record<string, string> = {
   general: "一般",
@@ -29,6 +29,7 @@ export default function ProfileScreen({
   const [avatarBusy, setAvatarBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [cropFile, setCropFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -53,14 +54,21 @@ export default function ProfileScreen({
     }
   }
 
-  async function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+  // 画像を選んだらクロップ画面を開く
+  function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
-    if (!file || !profile) return;
+    if (fileRef.current) fileRef.current.value = "";
+    if (file) setCropFile(file);
+  }
+
+  // クロップ確定 → アップロード
+  async function onCropped(blob: Blob) {
+    setCropFile(null);
+    if (!profile) return;
     setAvatarBusy(true);
     setErr(null);
     setMsg(null);
     try {
-      const blob = await resizeImage(file, 256);
       const newPath = await uploadAvatar(blob);
       await updateMyProfile({ avatar_path: newPath });
       const old = profile.avatar_path;
@@ -71,7 +79,6 @@ export default function ProfileScreen({
       setErr(e instanceof Error ? e.message : "画像のアップロードに失敗しました");
     } finally {
       setAvatarBusy(false);
-      if (fileRef.current) fileRef.current.value = "";
     }
   }
 
@@ -211,6 +218,14 @@ export default function ProfileScreen({
       >
         {saving ? "保存中…" : "保存"}
       </button>
+
+      {cropFile && (
+        <AvatarCropper
+          file={cropFile}
+          onCancel={() => setCropFile(null)}
+          onCropped={onCropped}
+        />
+      )}
     </div>
   );
 }
