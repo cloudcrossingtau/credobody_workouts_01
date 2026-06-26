@@ -1,0 +1,25 @@
+---
+import "@/styles/global.css";
+const { title = "習慣チェックカレンダー" } = Astro.props;
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, viewport-fit=cover"
+    />
+    <title>{title}</title>
+  </head>
+  <body
+    class="min-h-dvh bg-slate-50 text-slate-900 antialiased dark:bg-slate-950 dark:text-slate-100"
+  >
+    <main
+      class="mx-auto max-w-md px-4 pb-10 pt-[max(1.5rem,var(--safe-top))]"
+    >
+      <slot />
+    </main>
+  </body>
+</html>

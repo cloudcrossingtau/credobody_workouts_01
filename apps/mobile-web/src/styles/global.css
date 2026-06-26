@@ -1,0 +1,10 @@
+@import "tailwindcss";
+
+/* ダークモードはルート要素の .dark クラスで切り替える */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* iOS のセーフエリア（ノッチ・ホームインジケータ） */
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}

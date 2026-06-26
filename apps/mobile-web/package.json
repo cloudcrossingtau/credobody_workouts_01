@@ -1,0 +1,29 @@
+{
+  "name": "mobile-web",
+  "type": "module",
+  "version": "0.0.1",
+  "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "preview": "astro preview",
+    "astro": "astro"
+  },
+  "dependencies": {
+    "@astrojs/react": "^5.0.0",
+    "@supabase/supabase-js": "^2.103.0",
+    "@tailwindcss/vite": "4.2.4",
+    "@types/react": "^19.2.17",
+    "@types/react-dom": "^19.2.3",
+    "astro": "^6.0.5",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "tailwindcss": "4.2.4"
+  },
+  "overrides": {
+    "vite": "^7"
+  }
+}
