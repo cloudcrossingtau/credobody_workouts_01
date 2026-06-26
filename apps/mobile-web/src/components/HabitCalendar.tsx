@@ -1178,11 +1178,11 @@ export default function TrainingLog() {
       {/* セル入力モーダル */}
       {editing && editingItem && (
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 sm:items-center"
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-16"
           onClick={() => setEditing(null)}
         >
           <div
-            className="w-full max-w-sm rounded-t-2xl bg-white p-5 dark:bg-slate-900 sm:rounded-2xl"
+            className="w-full max-w-sm rounded-2xl bg-white p-5 dark:bg-slate-900"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2">
