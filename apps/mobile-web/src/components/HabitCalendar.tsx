@@ -283,7 +283,7 @@ export default function TrainingLog() {
       toEnd(countWeeklyRef);
     }
     if (view === "grid") toEnd(gridScrollRef);
-  }, [view, weekStart, loaded]);
+  }, [view, weekStart, loaded, session, authChecked]);
 
   const todayStr = ymd(new Date());
 
@@ -380,13 +380,10 @@ export default function TrainingLog() {
   const TABS: { id: "grid" | "charts" | "settings"; label: string; icon: ReactNode }[] = [
     {
       id: "grid",
-      label: "記録",
+      label: "ホーム",
       icon: (
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" className="h-6 w-6">
-          <rect x="3" y="5" width="18" height="16" rx="2" />
-          <line x1="3" y1="10" x2="21" y2="10" />
-          <line x1="8" y1="3" x2="8" y2="7" />
-          <line x1="16" y1="3" x2="16" y2="7" />
+          <path d="M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1V9.5z" />
         </svg>
       ),
     },
@@ -1011,13 +1008,26 @@ export default function TrainingLog() {
   return (
     <>
       <div className="pb-24">
-        {/* ヘッダー（中央タイトル＋右にユーザーアイコン） */}
-        <div className="relative flex items-center justify-center">
-          <h1 className="text-xl font-bold">トレーニング記録</h1>
+        {/* ヘッダー（左：今日へ / 右：ユーザーアイコン） */}
+        <div className="flex h-9 items-center justify-between">
+          {items.length > 0 ? (
+            <button
+              onClick={() => {
+                if (gridScrollRef.current)
+                  gridScrollRef.current.scrollLeft =
+                    gridScrollRef.current.scrollWidth;
+              }}
+              className="rounded-full border border-slate-300 px-3 py-1 text-[13px] font-medium text-slate-700 dark:border-slate-600 dark:text-slate-200"
+            >
+              今日へ
+            </button>
+          ) : (
+            <span />
+          )}
           {supabase && session && (
             <button
               onClick={() => setView("profile")}
-              className="absolute right-0 h-9 w-9 overflow-hidden rounded-full bg-slate-200 ring-1 ring-slate-300 dark:bg-slate-700 dark:ring-slate-600"
+              className="h-9 w-9 overflow-hidden rounded-full bg-slate-200 ring-1 ring-slate-300 dark:bg-slate-700 dark:ring-slate-600"
               aria-label="プロフィール"
             >
               {myAvatarUrl ? (
@@ -1050,22 +1060,10 @@ export default function TrainingLog() {
           </p>
         ) : (
           <>
-            <div className="mt-2 flex justify-end">
-              <button
-                onClick={() => {
-                  if (gridScrollRef.current)
-                    gridScrollRef.current.scrollLeft =
-                      gridScrollRef.current.scrollWidth;
-                }}
-                className="rounded-md bg-slate-200 px-2.5 py-1 text-[14px] font-medium text-slate-800 dark:bg-slate-700 dark:text-slate-100"
-              >
-                今日へ
-              </button>
-            </div>
             {/* 種目名は固定・日付部分のみ横スクロール */}
             <div
               ref={gridScrollRef}
-              className="mt-2 overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
+              className="mt-3 overflow-x-auto rounded-2xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-slate-900"
             >
               <div style={{ minWidth: NAME_W + gridDays.length * CELL_W }}>
                 {/* 日付ヘッダー */}
