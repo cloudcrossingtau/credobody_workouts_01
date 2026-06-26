@@ -8,6 +8,7 @@ import {
   type Profile,
 } from "@/lib/profile";
 import AvatarCropper from "./AvatarCropper";
+import { supabase } from "@/lib/supabase";
 
 const ROLE_LABEL: Record<string, string> = {
   general: "一般",
@@ -238,7 +239,7 @@ export default function ProfileScreen({
         </p>
       )}
 
-      {editing && (
+      {editing ? (
         <div className="mt-5 flex gap-2">
           <button
             onClick={save}
@@ -255,6 +256,15 @@ export default function ProfileScreen({
             キャンセル
           </button>
         </div>
+      ) : (
+        supabase && (
+          <button
+            onClick={() => supabase?.auth.signOut()}
+            className="mt-8 w-full rounded-xl border border-card-border px-4 py-2.5 text-[15px] font-medium text-foreground"
+          >
+            ログアウト
+          </button>
+        )
       )}
 
       {cropFile && (

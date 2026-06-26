@@ -848,24 +848,6 @@ export default function TrainingLog() {
             </section>
           )}
 
-          {/* アカウント */}
-          {supabase && session && (
-            <section className="mt-7">
-              <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
-                アカウント
-              </h2>
-              <p className="mt-2 text-[14px] text-slate-700 dark:text-slate-300">
-                {session.user.email}
-                {myRole ? `（${myRole}）` : ""}
-              </p>
-              <button
-                onClick={() => supabase?.auth.signOut()}
-                className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-2.5 text-[15px] font-medium text-slate-800 dark:border-slate-600 dark:text-slate-100"
-              >
-                ログアウト
-              </button>
-            </section>
-          )}
           </>
           )}
         </div>
