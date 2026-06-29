@@ -69,8 +69,18 @@ export default function AuthScreen() {
   return (
     <div className="flex min-h-[70vh] flex-col items-center justify-center">
       <div className="w-full max-w-sm rounded-2xl border border-card-border bg-card-bg p-6 dark:border-slate-800 dark:bg-slate-900">
-        <h1 className="text-center text-xl font-semibold text-slate-900 dark:text-slate-100">
+        <h1 className="flex items-center justify-center gap-2 text-xl font-semibold text-slate-900 dark:text-slate-100">
           CredoBodyRise
+          {/* 開発ビルド (`astro dev`) でのみ LOCAL バッジを表示。
+              本番ビルドでは import.meta.env.DEV が false なので出力されない。 */}
+          {import.meta.env.DEV && (
+            <span
+              className="rounded bg-yellow-400 px-1.5 py-0.5 text-[11px] font-bold text-yellow-900"
+              aria-hidden
+            >
+              LOCAL
+            </span>
+          )}
         </h1>
 
         {/* ログイン / 新規登録 トグル（招待制では新規登録を非表示） */}

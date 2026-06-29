@@ -12,10 +12,35 @@ const { title = "CredoBodyRise" } = Astro.props;
       content="width=device-width, initial-scale=1, viewport-fit=cover"
     />
     <title>{title}</title>
+    <meta name="description" content="トレーニング記録アプリ" />
+    <meta name="theme-color" content="#2563eb" />
     {/* アプリアイコン（暫定: CredoBody ロゴ。後で差し替え予定） */}
     <link rel="icon" type="image/png" href="/icon.png" />
-    <link rel="apple-touch-icon" href="/icon.png" />
+    {/* PWA: ホーム画面追加で疑似アプリ化、iOS でステータスバーをアクセント色に */}
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
     <meta name="apple-mobile-web-app-title" content="CredoBodyRise" />
+    {/* iPad / iPhone それぞれの推奨サイズに合わせた専用アイコンを提供。
+        標準ファイル名 /apple-touch-icon.png も置いて、iOS が URL 列挙していなくても拾えるように。 */}
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png" />
+    <script is:inline>
+      // Service Worker 登録 (PWA インストール可能性の前提)
+      if ("serviceWorker" in navigator) {
+        window.addEventListener("load", () => {
+          navigator.serviceWorker
+            .register("/sw.js")
+            .catch((e) => console.warn("[sw] registration failed:", e));
+        });
+      }
+    </script>
   </head>
   <body class="min-h-dvh bg-background text-foreground antialiased">
     <main class="mx-auto max-w-md px-4 pb-10">
