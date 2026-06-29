@@ -1,30 +1,35 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { pullRemote, saveRecord, deleteRecord } from "@/lib/sync";
+import { getMyProfile, getAvatarUrl, roleLabel } from "@/lib/profile";
+import { pullAllUserGrids, type UserGrid } from "@/lib/devData";
+import { TrainingGrid } from "@/components/TrainingGrid";
 import {
   type Item,
   type Minutes,
   ymd,
-  addDays,
-  startOfDay,
-  fmtHours,
   WD,
-  GRID_PAST_DAYS,
   QUICK_TIME,
   QUICK_COUNT,
 } from "@/lib/training";
 
-const NAME_W = 140; // 種目名カラム幅(px)
-const CELL_W = 48; // 1日セル幅(px)
-
-// 記録グリッド（デスクトップ）。Supabaseが正本・保存はその場で書き込み。
+// ホーム（記録）。ロールで見える範囲が変わる:
+//   - 一般ユーザー: 自分のデータのみ（編集可）。
+//   - 管理者/開発者: 全ユーザーのデータをユーザーごとの表で表示（現在は閲覧のみ）。
 export function RecordGrid() {
-  const [items, setItems] = useState<Item[]>([]);
-  const [minutes, setMinutes] = useState<Minutes>({});
-  const [weekStart, setWeekStart] = useState<number>(1);
+  const [role, setRole] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  // 一般ユーザー（本人）用
+  const [items, setItems] = useState<Item[]>([]);
+  const [minutes, setMinutes] = useState<Minutes>({});
+  const [weekStart, setWeekStart] = useState<number>(1);
+
+  // 管理者/開発者用（全ユーザー）
+  const [userGrids, setUserGrids] = useState<UserGrid[]>([]);
+
+  // セル編集モーダル（本人のみ）
   const [editing, setEditing] = useState<{ itemId: string; date: Date } | null>(
     null,
   );
@@ -32,64 +37,38 @@ export function RecordGrid() {
   const [cellBusy, setCellBusy] = useState(false);
   const [cellError, setCellError] = useState<string | null>(null);
 
-  const gridScrollRef = useRef<HTMLDivElement>(null);
+  const isManager = role === "admin" || role === "developer";
 
   async function loadData() {
-    if (!supabase) {
-      setLoaded(true);
-      return;
-    }
     setLoaded(false);
     setLoadError(null);
     try {
-      const remote = await pullRemote();
-      if (remote) {
-        setItems(remote.items);
-        setMinutes(remote.minutes);
-        if (remote.weekStart != null) setWeekStart(remote.weekStart);
+      if (!supabase) {
+        setLoaded(true);
+        return;
+      }
+      const p = await getMyProfile();
+      const r = p?.role ?? "general";
+      setRole(r);
+      if (r === "admin" || r === "developer") {
+        setUserGrids(await pullAllUserGrids());
+      } else {
+        const remote = await pullRemote();
+        if (remote) {
+          setItems(remote.items);
+          setMinutes(remote.minutes);
+          if (remote.weekStart != null) setWeekStart(remote.weekStart);
+        }
       }
       setLoaded(true);
     } catch (e) {
-      console.warn("[load] failed:", e);
+      console.warn("[home] load failed:", e);
       setLoadError("データの読み込みに失敗しました。通信状況を確認してください。");
     }
   }
   useEffect(() => {
     loadData();
   }, []);
-
-  // 開いた時・「今日へ」で右端へ
-  const scrollToEnd = () => {
-    if (gridScrollRef.current)
-      gridScrollRef.current.scrollLeft = gridScrollRef.current.scrollWidth;
-  };
-  useEffect(() => {
-    if (loaded) scrollToEnd();
-  }, [loaded]);
-
-  const todayStr = ymd(new Date());
-  const today = startOfDay(new Date());
-
-  // 表示範囲：最古の記録日〜今日（最大 GRID_PAST_DAYS 日前まで）
-  const recYmds = Object.keys(minutes).map((k) => k.slice(k.indexOf(":") + 1));
-  const firstYmd = recYmds.length
-    ? recYmds.reduce((a, b) => (a < b ? a : b))
-    : todayStr;
-  const [fy, fm, fd] = firstYmd.split("-").map(Number);
-  let gStart = new Date(fy, fm - 1, fd);
-  const gMinStart = addDays(today, -GRID_PAST_DAYS);
-  if (gStart.getTime() < gMinStart.getTime()) gStart = gMinStart;
-  const gCount =
-    Math.round((today.getTime() - gStart.getTime()) / 86400000) + 1;
-  const gridDays = Array.from({ length: gCount }, (_, i) => addDays(gStart, i));
-
-  function recent7(itemId: string) {
-    let m = 0;
-    for (let k = 0; k < 7; k++) {
-      m += minutes[`${itemId}:${ymd(addDays(today, -k))}`] ?? 0;
-    }
-    return m;
-  }
 
   function openEditor(itemId: string, d: Date) {
     const cur = minutes[`${itemId}:${ymd(d)}`] ?? 0;
@@ -167,24 +146,87 @@ export function RecordGrid() {
     );
   }
 
-  return (
-    <div className="mx-auto max-w-5xl p-6">
-      <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-[20px] font-semibold text-foreground">ホーム</h2>
-        <div className="flex gap-2">
+  // ===== 管理者/開発者: 全ユーザーをユーザーごとの表で表示（閲覧のみ）=====
+  if (isManager) {
+    return (
+      <div className="mx-auto max-w-5xl p-6">
+        <div className="mb-1 flex items-center justify-between">
+          <h2 className="text-[20px] font-semibold text-foreground">ホーム</h2>
           <button
             onClick={loadData}
             className="rounded-lg border border-slate-300 bg-card-bg px-3 py-1.5 text-[14px] font-medium text-slate-700 hover:bg-slate-50"
           >
             更新
           </button>
-          <button
-            onClick={scrollToEnd}
-            className="rounded-lg border border-slate-300 bg-card-bg px-3 py-1.5 text-[14px] font-medium text-slate-700 hover:bg-slate-50"
-          >
-            今日へ
-          </button>
         </div>
+        <p className="mb-5 text-[13px] text-muted">
+          全ユーザーの記録を表示しています（{roleLabel(role ?? "")}・閲覧専用）。
+          登録ユーザー {userGrids.length} 名。
+        </p>
+
+        <div className="space-y-8">
+          {userGrids.map((u) => {
+            const avatarUrl = getAvatarUrl(u.avatarPath);
+            const name = u.nickname?.trim() || u.email?.split("@")[0] || "（名称未設定）";
+            return (
+              <section key={u.id}>
+                <div className="mb-2 flex items-center gap-3">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-light">
+                    {avatarUrl ? (
+                      <img
+                        src={avatarUrl}
+                        alt=""
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-[15px] font-bold text-accent">
+                        {name.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-[15px] font-semibold text-foreground">
+                      {name}
+                      <span className="ml-2 align-middle text-[12px] font-normal text-muted">
+                        {roleLabel(u.role)}
+                      </span>
+                    </p>
+                    <p className="truncate text-[12px] text-muted">
+                      {u.email ?? "-"}
+                    </p>
+                  </div>
+                </div>
+                <TrainingGrid
+                  items={u.items}
+                  minutes={u.minutes}
+                  weekStart={u.weekStart}
+                  readOnly
+                  maxHeight="360px"
+                />
+              </section>
+            );
+          })}
+          {userGrids.length === 0 && (
+            <p className="py-10 text-center text-[15px] text-muted">
+              ユーザーがいません。
+            </p>
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ===== 一般ユーザー: 自分のデータ（編集可）=====
+  return (
+    <div className="mx-auto max-w-5xl p-6">
+      <div className="mb-4 flex items-center justify-between">
+        <h2 className="text-[20px] font-semibold text-foreground">ホーム</h2>
+        <button
+          onClick={loadData}
+          className="rounded-lg border border-slate-300 bg-card-bg px-3 py-1.5 text-[14px] font-medium text-slate-700 hover:bg-slate-50"
+        >
+          更新
+        </button>
       </div>
 
       {items.length === 0 ? (
@@ -192,111 +234,12 @@ export function RecordGrid() {
           種目がありません。「設定」から登録してください。
         </p>
       ) : (
-        <div
-          ref={gridScrollRef}
-          className="overflow-auto rounded-2xl border border-card-border bg-card-bg"
-          style={{ maxHeight: "calc(100dvh - 160px)" }}
-        >
-          <div style={{ minWidth: NAME_W + gridDays.length * CELL_W }}>
-            {/* 日付ヘッダー（縦スクロールで上端固定） */}
-            <div className="sticky top-0 z-30 flex items-stretch border-b border-card-border bg-card-bg">
-              <div
-                className="sticky left-0 z-40 flex items-center border-r border-card-border bg-card-bg px-3 py-2 text-[15px] font-semibold text-slate-700"
-                style={{ width: NAME_W }}
-              >
-                種目
-              </div>
-              {gridDays.map((d, i) => {
-                const isToday = ymd(d) === todayStr;
-                const wd = d.getDay();
-                const isWeekStart = wd === weekStart;
-                const isFirst = d.getDate() === 1;
-                return (
-                  <div
-                    key={i}
-                    className={`shrink-0 py-2 text-center ${
-                      isWeekStart ? "border-l border-slate-300" : ""
-                    }`}
-                    style={{ width: CELL_W }}
-                  >
-                    <div
-                      className={`text-[13px] ${
-                        wd === 0
-                          ? "text-red-500"
-                          : wd === 6
-                            ? "text-blue-500"
-                            : "text-muted"
-                      }`}
-                    >
-                      {WD[wd]}
-                    </div>
-                    <div
-                      className={`mx-auto mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[14px] font-semibold ${
-                        isToday ? "bg-accent text-white" : "text-slate-800"
-                      }`}
-                    >
-                      {isFirst ? `${d.getMonth() + 1}/1` : d.getDate()}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* 種目行 */}
-            {items.map((it) => (
-              <div
-                key={it.id}
-                className="flex items-stretch border-b border-slate-100 last:border-b-0"
-              >
-                <div
-                  className="sticky left-0 z-10 flex items-center gap-2 border-r border-card-border bg-card-bg px-3 py-2"
-                  style={{ width: NAME_W }}
-                >
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ backgroundColor: it.color }}
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[15px] font-medium text-slate-900">
-                      {it.name}
-                    </span>
-                    <span className="block text-[12px] text-muted">
-                      7日{" "}
-                      {it.unit === "time"
-                        ? `${fmtHours(recent7(it.id))}h`
-                        : `${recent7(it.id)}回`}
-                    </span>
-                  </span>
-                </div>
-                {gridDays.map((d, i) => {
-                  const val = minutes[`${it.id}:${ymd(d)}`] ?? 0;
-                  const isWeekStart = d.getDay() === weekStart;
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => openEditor(it.id, d)}
-                      className={`flex h-12 shrink-0 items-center justify-center hover:bg-slate-50 ${
-                        isWeekStart ? "border-l border-slate-300" : ""
-                      }`}
-                      style={{ width: CELL_W }}
-                    >
-                      <span
-                        className="flex h-8 min-w-8 items-center justify-center rounded-lg px-1 text-[13px] font-semibold"
-                        style={
-                          val > 0
-                            ? { backgroundColor: it.color, color: "#fff" }
-                            : { color: "#cbd5e1" }
-                        }
-                      >
-                        {val > 0 ? val : "·"}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
-            ))}
-          </div>
-        </div>
+        <TrainingGrid
+          items={items}
+          minutes={minutes}
+          weekStart={weekStart}
+          onCell={openEditor}
+        />
       )}
 
       {/* セル入力モーダル */}
