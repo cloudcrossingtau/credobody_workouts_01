@@ -201,7 +201,7 @@ export function RecordGrid() {
                   minutes={u.minutes}
                   weekStart={u.weekStart}
                   readOnly
-                  maxHeight="360px"
+                  maxHeight="none"
                 />
               </section>
             );
