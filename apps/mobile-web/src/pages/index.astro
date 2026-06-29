@@ -1,8 +1,11 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import HabitCalendar from "@/components/HabitCalendar.tsx";
+import PresenceTracker from "@/components/PresenceTracker.tsx";
 ---
 
 <BaseLayout title="CredoBodyRise">
   <HabitCalendar client:load />
+  {/* ログイン中の在席を共有（管理画面のオンライン確認用）。未ログインなら何もしない。 */}
+  <PresenceTracker client:only="react" />
 </BaseLayout>

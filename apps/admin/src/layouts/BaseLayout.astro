@@ -3,6 +3,7 @@ import "@/styles/global.css";
 import SidebarNav from "@/components/SidebarNav.astro";
 import { SidebarUser } from "@/components/SidebarUser";
 import { AuthCheck } from "@/components/AuthCheck";
+import { PresenceTracker } from "@/components/PresenceTracker";
 
 interface Props {
   title?: string;
@@ -39,6 +40,7 @@ const pathname = Astro.url.pathname;
       requireAuth && (
         <>
           <AuthCheck client:only="react" />
+          <PresenceTracker client:only="react" />
           <aside class="flex h-full w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar-bg">
             <div class="border-b border-sidebar-border p-5">
               <h1 class="flex items-center gap-2 text-lg font-bold text-foreground">

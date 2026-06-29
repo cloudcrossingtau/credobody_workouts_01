@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getMyProfile } from "@/lib/profile";
 
-export function InvitePage() {
+// 管理タブ。管理者/開発者向けの管理系機能（まずはユーザー招待）。今後ここに追加していく。
+export function AdminPage() {
   const [role, setRole] = useState<string | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [email, setEmail] = useState("");
@@ -48,31 +49,30 @@ export function InvitePage() {
     }
   }
 
-  const canInvite = role === "admin" || role === "developer";
+  const canManage = role === "admin" || role === "developer";
 
   return (
-    <div className="mx-auto max-w-xl p-6">
-      <div className="mb-5 flex items-center gap-2">
-        <a
-          href="/settings"
-          className="rounded-lg px-2 py-1 text-[15px] text-accent hover:bg-slate-100"
-        >
-          ‹ 設定
-        </a>
-        <h2 className="text-[20px] font-semibold text-foreground">
-          ユーザー招待
-        </h2>
-      </div>
+    <div className="mx-auto max-w-2xl p-6">
+      <h2 className="mb-1 text-[20px] font-semibold text-foreground">管理</h2>
+      <p className="mb-5 text-[13px] text-muted">
+        管理者向けの機能（開発に特化した操作は「開発」タブ）。
+      </p>
 
       {!loaded ? (
         <p className="text-[15px] text-muted">読み込み中…</p>
-      ) : !canInvite ? (
+      ) : !canManage ? (
         <p className="text-[15px] text-foreground">
-          この操作には管理者または開発者の権限が必要です。
+          この画面には管理者または開発者の権限が必要です。
         </p>
       ) : (
-        <>
-          <div className="flex gap-2">
+        <section className="rounded-2xl border border-card-border bg-card-bg p-5">
+          <h3 className="text-[16px] font-semibold text-slate-900">
+            ユーザー招待
+          </h3>
+          <p className="mt-1 text-[13px] text-muted">
+            メールアドレスに招待リンクを送信します。
+          </p>
+          <div className="mt-3 flex gap-2">
             <input
               type="email"
               inputMode="email"
@@ -90,7 +90,7 @@ export function InvitePage() {
             </button>
           </div>
           {msg && <p className="mt-3 text-[14px] text-slate-700">{msg}</p>}
-        </>
+        </section>
       )}
     </div>
   );

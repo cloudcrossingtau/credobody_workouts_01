@@ -1,6 +1,3 @@
-import { useEffect, useState } from "react";
-import { getMyProfile } from "@/lib/profile";
-
 type Card = { href: string; title: string; description: string; icon: string };
 type Section = { title: string; cards: Card[] };
 
@@ -17,12 +14,6 @@ const ICON = {
 
 // 設定のランディング（nouker と同じカード一覧 → 各詳細ページへ遷移）。
 export function SettingsHome() {
-  const [role, setRole] = useState<string | null>(null);
-  useEffect(() => {
-    getMyProfile().then((p) => setRole(p?.role ?? null));
-  }, []);
-
-  const canManage = role === "admin" || role === "developer";
 
   const sections: Section[] = [
     {
@@ -53,21 +44,7 @@ export function SettingsHome() {
         },
       ],
     },
-    ...(canManage
-      ? [
-          {
-            title: "管理",
-            cards: [
-              {
-                href: "/settings/invite",
-                title: "ユーザー招待",
-                description: "メールで新しいユーザーを招待",
-                icon: ICON.invite,
-              },
-            ],
-          },
-        ]
-      : []),
+    // ユーザー招待は「管理」タブへ移設（設定からは除外）
     ...(import.meta.env.DEV
       ? [
           {

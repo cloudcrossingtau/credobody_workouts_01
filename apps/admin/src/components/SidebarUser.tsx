@@ -31,9 +31,15 @@ export function SidebarUser() {
     };
   }, []);
 
-  // developer のみ表示するナビ項目（data-developer-only）の表示を切り替える。
+  // ロール限定のナビ項目の表示を切り替える。
+  //   - data-admin-only: admin + developer
+  //   - data-developer-only: developer のみ
   useEffect(() => {
     const isDeveloper = profile?.role === "developer";
+    const isManager = profile?.role === "admin" || isDeveloper;
+    document.querySelectorAll<HTMLElement>("[data-admin-only]").forEach((el) => {
+      el.style.display = isManager ? "" : "none";
+    });
     document
       .querySelectorAll<HTMLElement>("[data-developer-only]")
       .forEach((el) => {
