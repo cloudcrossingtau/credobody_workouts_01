@@ -1,0 +1,8 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { ProfilePage } from "@/components/ProfilePage";
+---
+
+<BaseLayout title="CredoBodyRise — プロフィール">
+  <ProfilePage client:only="react" />
+</BaseLayout>

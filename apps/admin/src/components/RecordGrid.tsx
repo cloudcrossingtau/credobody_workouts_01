@@ -170,7 +170,7 @@ export function RecordGrid() {
   return (
     <div className="mx-auto max-w-5xl p-6">
       <div className="mb-4 flex items-center justify-between">
-        <h2 className="text-[20px] font-semibold text-foreground">記録</h2>
+        <h2 className="text-[20px] font-semibold text-foreground">ホーム</h2>
         <div className="flex gap-2">
           <button
             onClick={loadData}

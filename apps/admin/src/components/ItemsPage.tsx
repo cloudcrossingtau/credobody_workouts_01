@@ -1,0 +1,320 @@
+import { useEffect, useState } from "react";
+import { supabase } from "@/lib/supabase";
+import { pullRemote, saveItems, uuid } from "@/lib/sync";
+import { type Item, type Unit, COLOR_CHOICES } from "@/lib/training";
+
+type Draft = { id: string | null; name: string; color: string; unit: Unit };
+
+export function ItemsPage() {
+  const [items, setItems] = useState<Item[]>([]);
+  const [loaded, setLoaded] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // 編集モーダル（id=null は新規追加）
+  const [draft, setDraft] = useState<Draft | null>(null);
+
+  async function loadData() {
+    if (!supabase) {
+      setLoaded(true);
+      return;
+    }
+    setLoaded(false);
+    setLoadError(null);
+    try {
+      const remote = await pullRemote();
+      if (remote) setItems(remote.items);
+      setLoaded(true);
+    } catch (e) {
+      console.warn("[load] failed:", e);
+      setLoadError("読み込みに失敗しました。通信状況を確認してください。");
+    }
+  }
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  // 一覧を正として即時保存。失敗時は false を返し、呼び出し側で巻き戻す。
+  async function persist(next: Item[]): Promise<boolean> {
+    const prev = items;
+    setItems(next);
+    setBusy(true);
+    setError(null);
+    try {
+      if (supabase) await saveItems(next);
+      return true;
+    } catch (e) {
+      console.warn("[items] save failed:", e);
+      setError("保存に失敗しました。通信状況を確認してもう一度お試しください。");
+      setItems(prev); // 巻き戻し
+      return false;
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function move(id: string, dir: -1 | 1) {
+    const i = items.findIndex((x) => x.id === id);
+    const j = i + dir;
+    if (i < 0 || j < 0 || j >= items.length) return;
+    const next = [...items];
+    [next[i], next[j]] = [next[j], next[i]];
+    await persist(next);
+  }
+
+  async function saveDraft() {
+    if (!draft) return;
+    const name = draft.name.trim();
+    if (!name) {
+      setError("項目名を入力してください。");
+      return;
+    }
+    let next: Item[];
+    if (draft.id) {
+      next = items.map((x) =>
+        x.id === draft.id
+          ? { ...x, name, color: draft.color, unit: draft.unit }
+          : x,
+      );
+    } else {
+      next = [
+        ...items,
+        { id: uuid(), name, color: draft.color, unit: draft.unit },
+      ];
+    }
+    const ok = await persist(next);
+    if (ok) setDraft(null);
+  }
+
+  async function deleteDraft() {
+    if (!draft?.id) return;
+    const it = items.find((x) => x.id === draft.id);
+    if (it && !confirm(`「${it.name}」を削除しますか？記録も削除されます。`)) return;
+    const ok = await persist(items.filter((x) => x.id !== draft.id));
+    if (ok) setDraft(null);
+  }
+
+  if (!loaded) {
+    return loadError ? (
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
+        <p className="text-[15px] text-foreground">{loadError}</p>
+        <button
+          onClick={loadData}
+          className="rounded-xl bg-accent px-5 py-2.5 text-[16px] font-semibold text-white active:opacity-90"
+        >
+          再読み込み
+        </button>
+      </div>
+    ) : (
+      <div className="py-24 text-center text-[15px] text-muted">読み込み中…</div>
+    );
+  }
+
+  return (
+    <div className="mx-auto max-w-2xl p-6">
+      <div className="mb-5 flex items-center gap-2">
+        <a
+          href="/settings"
+          className="rounded-lg px-2 py-1 text-[15px] text-accent hover:bg-slate-100"
+        >
+          ‹ 設定
+        </a>
+        <h2 className="text-[20px] font-semibold text-foreground">
+          トレーニング項目
+        </h2>
+      </div>
+
+      {error && (
+        <p className="mb-3 text-[14px] font-medium text-red-600">{error}</p>
+      )}
+
+      {/* カード一覧（クリックで編集） */}
+      <div className="space-y-2">
+        {items.map((it, idx) => (
+          <button
+            key={it.id}
+            onClick={() =>
+              setDraft({
+                id: it.id,
+                name: it.name,
+                color: it.color,
+                unit: it.unit,
+              })
+            }
+            className="flex w-full items-center gap-3 rounded-xl border border-card-border bg-card-bg p-4 text-left transition-all hover:border-slate-300 hover:shadow-sm"
+          >
+            <span
+              className="h-4 w-4 shrink-0 rounded-full"
+              style={{ backgroundColor: it.color }}
+            />
+            <span className="flex-1 text-[15px] font-semibold text-foreground">
+              {it.name}
+            </span>
+            <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[13px] font-medium text-slate-700">
+              {it.unit === "time" ? "時間（分）" : "種目数（回）"}
+            </span>
+            {/* 並べ替え（カードのクリックとは独立） */}
+            <span className="flex flex-col">
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!busy) move(it.id, -1);
+                }}
+                aria-disabled={idx === 0}
+                className={`px-1 text-[14px] leading-tight ${
+                  idx === 0 ? "text-slate-300" : "text-slate-600 hover:text-accent"
+                }`}
+                aria-label="上へ"
+              >
+                ▲
+              </span>
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  if (!busy) move(it.id, 1);
+                }}
+                aria-disabled={idx === items.length - 1}
+                className={`px-1 text-[14px] leading-tight ${
+                  idx === items.length - 1
+                    ? "text-slate-300"
+                    : "text-slate-600 hover:text-accent"
+                }`}
+                aria-label="下へ"
+              >
+                ▼
+              </span>
+            </span>
+            <svg
+              className="h-5 w-5 text-slate-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </button>
+        ))}
+        {items.length === 0 && (
+          <p className="rounded-xl border border-card-border bg-card-bg px-4 py-6 text-center text-[15px] text-muted">
+            項目がありません。下のボタンから追加してください。
+          </p>
+        )}
+      </div>
+
+      <button
+        onClick={() =>
+          setDraft({ id: null, name: "", color: COLOR_CHOICES[0], unit: "time" })
+        }
+        className="mt-4 w-full rounded-xl border border-dashed border-slate-300 bg-card-bg px-4 py-3 text-[15px] font-semibold text-accent hover:bg-slate-50"
+      >
+        ＋ 項目を追加
+      </button>
+
+      {/* 編集モーダル */}
+      {draft && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center bg-black/40 p-4 pt-24"
+          onClick={() => setDraft(null)}
+        >
+          <div
+            className="w-full max-w-md rounded-2xl bg-card-bg p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-[17px] font-semibold text-foreground">
+              {draft.id ? "項目を編集" : "項目を追加"}
+            </h3>
+
+            <label className="mt-4 block text-[14px] font-medium text-slate-800">
+              項目名
+            </label>
+            <input
+              value={draft.name}
+              autoFocus
+              onChange={(e) => setDraft({ ...draft, name: e.target.value })}
+              placeholder="例：水泳"
+              className="mt-1.5 w-full rounded-lg border border-slate-300 bg-card-bg px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400"
+            />
+
+            <p className="mt-3 text-[14px] font-medium text-slate-800">記録の単位</p>
+            <div className="mt-1.5 flex overflow-hidden rounded-lg border border-slate-300">
+              <button
+                onClick={() => setDraft({ ...draft, unit: "time" })}
+                className={`flex-1 px-3 py-2 text-[15px] font-medium ${
+                  draft.unit === "time"
+                    ? "bg-accent text-white"
+                    : "bg-card-bg text-slate-800"
+                }`}
+              >
+                時間（分）
+              </button>
+              <button
+                onClick={() => setDraft({ ...draft, unit: "count" })}
+                className={`flex-1 px-3 py-2 text-[15px] font-medium ${
+                  draft.unit === "count"
+                    ? "bg-accent text-white"
+                    : "bg-card-bg text-slate-800"
+                }`}
+              >
+                種目数（回）
+              </button>
+            </div>
+
+            <p className="mt-3 text-[14px] font-medium text-slate-800">色</p>
+            <div className="mt-1.5 flex flex-wrap gap-2">
+              {COLOR_CHOICES.map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setDraft({ ...draft, color: c })}
+                  className={`h-8 w-8 rounded-full ${
+                    draft.color === c ? "ring-2 ring-slate-500 ring-offset-2" : ""
+                  }`}
+                  style={{ backgroundColor: c }}
+                  aria-label={c}
+                />
+              ))}
+            </div>
+
+            {error && (
+              <p className="mt-4 text-[14px] font-medium text-red-600">{error}</p>
+            )}
+
+            <button
+              onClick={saveDraft}
+              disabled={busy}
+              className="mt-5 w-full rounded-xl bg-accent px-4 py-2.5 text-[16px] font-semibold text-white active:opacity-90 disabled:opacity-50"
+            >
+              {busy ? "保存中…" : "保存"}
+            </button>
+            <div className="mt-2 flex gap-2">
+              {draft.id && (
+                <button
+                  onClick={deleteDraft}
+                  disabled={busy}
+                  className="flex-1 rounded-xl border border-red-300 bg-card-bg px-4 py-2.5 text-[16px] font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                >
+                  削除
+                </button>
+              )}
+              <button
+                onClick={() => setDraft(null)}
+                disabled={busy}
+                className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-2.5 text-[16px] font-medium text-slate-800 disabled:opacity-50"
+              >
+                キャンセル
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}

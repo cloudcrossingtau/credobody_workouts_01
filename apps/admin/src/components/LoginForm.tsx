@@ -74,7 +74,7 @@ export function LoginForm() {
       <div className="w-full max-w-sm rounded-2xl border border-card-border bg-card-bg p-7 shadow-sm">
         <h1 className="flex items-center justify-center gap-2 text-xl font-semibold text-slate-900">
           <img src="/icon.png" alt="" className="h-7 w-7" />
-          CredoBodyRise 管理
+          CredoBodyRise
           {import.meta.env.DEV && (
             <span className="rounded bg-yellow-400 px-1.5 py-0.5 text-[11px] font-bold text-yellow-900">
               LOCAL

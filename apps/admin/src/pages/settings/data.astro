@@ -1,0 +1,13 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { DataPage } from "@/components/DataPage";
+
+// 開発用ページ。本番ビルドでは設定へリダイレクト（カードも非表示）。
+if (!import.meta.env.DEV) {
+  return Astro.redirect("/settings");
+}
+---
+
+<BaseLayout title="CredoBodyRise — データ（開発用）">
+  <DataPage client:only="react" />
+</BaseLayout>
