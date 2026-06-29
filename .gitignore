@@ -26,6 +26,9 @@ pnpm-debug.log*
 # misc
 tmp/
 
+# Supabase CLI のローカルキャッシュ（リンク先・各種バージョン情報）
+supabase/.temp/
+
 # チャット用の作業画像置き場（リポジトリには含めない）
 apps/work/
 work/
