@@ -31,6 +31,16 @@ export function SidebarUser() {
     };
   }, []);
 
+  // developer のみ表示するナビ項目（data-developer-only）の表示を切り替える。
+  useEffect(() => {
+    const isDeveloper = profile?.role === "developer";
+    document
+      .querySelectorAll<HTMLElement>("[data-developer-only]")
+      .forEach((el) => {
+        el.style.display = isDeveloper ? "" : "none";
+      });
+  }, [profile]);
+
   if (!profile) return null;
 
   const handleLogout = async () => {
