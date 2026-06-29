@@ -21,7 +21,18 @@ const pathname = Astro.url.pathname;
     <title>{title}</title>
     <meta name="description" content="CredoBodyRise 管理画面（デスクトップ）" />
     <meta name="theme-color" content="#2563eb" />
+    {/* ファビコン / アプリアイコン（Safari 等が確実に拾えるよう複数サイズを明示） */}
+    <link rel="icon" type="image/png" sizes="192x192" href="/icon-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/icon-512x512.png" />
     <link rel="icon" type="image/png" href="/icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="CredoBodyRise 管理" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon-180x180.png" />
+    <link rel="apple-touch-icon" sizes="167x167" href="/apple-touch-icon-167x167.png" />
+    <link rel="apple-touch-icon" sizes="152x152" href="/apple-touch-icon-152x152.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png" />
   </head>
   <body class="flex h-full">
     {
