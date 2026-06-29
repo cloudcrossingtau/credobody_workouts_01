@@ -4,6 +4,7 @@ import { pullRemote, saveRecord, deleteRecord } from "@/lib/sync";
 import { getMyProfile, getAvatarUrl, roleLabel } from "@/lib/profile";
 import { pullAllUserGrids, type UserGrid } from "@/lib/devData";
 import { TrainingGrid } from "@/components/TrainingGrid";
+import { Avatar } from "@/components/Avatar";
 import {
   type Item,
   type Minutes,
@@ -171,19 +172,7 @@ export function RecordGrid() {
             return (
               <section key={u.id}>
                 <div className="mb-2 flex items-center gap-3">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-accent-light">
-                    {avatarUrl ? (
-                      <img
-                        src={avatarUrl}
-                        alt=""
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-[15px] font-bold text-accent">
-                        {name.charAt(0).toUpperCase()}
-                      </span>
-                    )}
-                  </div>
+                  <Avatar url={avatarUrl} fallback={name.charAt(0).toUpperCase()} size={36} />
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-[15px] font-semibold text-foreground">
                       {name}
