@@ -8,7 +8,16 @@ import {
 import type { Session } from "@supabase/supabase-js";
 import { supabase } from "@/lib/supabase";
 import { getMyProfile, getAvatarUrl } from "@/lib/profile";
-import { pullRemote, reconcileToRemote, remapLocalIds, uuid } from "@/lib/sync";
+import {
+  pullRemote,
+  saveRecord,
+  deleteRecord,
+  saveItems,
+  saveWeekStart,
+  deleteAllRecords,
+  replaceAllRecords,
+  uuid,
+} from "@/lib/sync";
 import AuthScreen from "./AuthScreen";
 import SetPasswordScreen from "./SetPasswordScreen";
 import ProfileScreen from "./ProfileScreen";
@@ -58,11 +67,6 @@ function niceScale(maxVal: number) {
   return { max: Math.ceil(maxVal / step) * step, step };
 }
 
-// レガシーデータ移行用：単位が未設定の項目の既定
-function defaultUnit(name: string): Unit {
-  return name === "ラン" || name === "バイク" ? "time" : "count";
-}
-
 // ---- 初期サンプル（縦軸＝トレーニング項目 / 設定画面で編集可） ----
 const SEED_ITEMS: Item[] = [
   { id: "i1", name: "ラン", color: "#3b82f6", unit: "time" },
@@ -110,9 +114,6 @@ function seedMinutes(list: Item[]): Minutes {
   return m;
 }
 
-const LS_ITEMS = "training.items.v1";
-const LS_MIN = "training.minutes.v1";
-const LS_WEEKSTART = "training.weekStart.v1";
 
 const CHART_H = 160; // グラフ描画領域の高さ(px)
 const AXIS_W = 32; // y軸ラベル幅(px)
@@ -136,9 +137,20 @@ export default function TrainingLog() {
   const [authChecked, setAuthChecked] = useState(false);
   const [myRole, setMyRole] = useState<string | null>(null);
   const [myAvatarUrl, setMyAvatarUrl] = useState<string | null>(null);
-  // Supabase 同期: 初回同期完了後に true（以降ローカル変更をミラー）
-  const [syncReady, setSyncReady] = useState(false);
-  const syncedRef = useRef(false);
+  // 起動時の読み込み（Supabaseが正本）。失敗したら再読み込みを促す。
+  const [loadError, setLoadError] = useState<string | null>(null);
+  // 引っ張って更新
+  const [refreshing, setRefreshing] = useState(false);
+  const [pullDist, setPullDist] = useState(0);
+  const refreshingRef = useRef(false);
+  const pullRef = useRef({ active: false, startY: 0, dist: 0 });
+  // セル保存・設定保存・データ操作の進行/失敗表示
+  const [cellBusy, setCellBusy] = useState(false);
+  const [cellError, setCellError] = useState<string | null>(null);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [dataBusy, setDataBusy] = useState(false);
+  const [dataError, setDataError] = useState<string | null>(null);
   // 招待メール/再設定リンク経由＝初回パスワード設定が必要
   const [needsPassword, setNeedsPassword] = useState(false);
   // 招待フォーム
@@ -195,12 +207,13 @@ export default function TrainingLog() {
       if (event === "PASSWORD_RECOVERY") setNeedsPassword(true);
       // ログアウト/ログイン時はホームに戻す（前回のビューが残らないように）
       if (event === "SIGNED_OUT" || event === "SIGNED_IN") setView("grid");
-      // ログアウト時はローカルデータを消去（別ユーザーへの混在/誤同期を防ぐ）
+      // ログアウト時は画面の状態をクリアするだけ（データはSupabaseにあるので消えない）。
+      // 再ログイン時に session が変わり、再度Supabaseから読み込まれる。
       if (event === "SIGNED_OUT") {
         setItems([]);
         setMinutes({});
-        setSyncReady(false);
-        syncedRef.current = false;
+        setLoaded(false);
+        setLoadError(null);
       }
     });
     return () => sub.subscription.unsubscribe();
@@ -222,45 +235,105 @@ export default function TrainingLog() {
     refreshProfile();
   }, [session]);
 
-  // 初回同期: リモートにデータがあれば採用、無ければローカルをアップロード
-  useEffect(() => {
-    if (!supabase || !session || !loaded) return;
-    if (syncedRef.current) return;
-    syncedRef.current = true;
-    (async () => {
-      try {
-        const remote = await pullRemote();
-        if (!remote) return;
-        if (remote.items.length > 0) {
-          // リモートが正
-          setItems(remote.items);
-          setMinutes(remote.minutes);
-          if (remote.weekStart != null) setWeekStart(remote.weekStart);
-        } else if (items.length > 0) {
-          // リモート空＆ローカルあり → ローカルをアップロード（IDをuuid化）
-          const remapped = remapLocalIds(items, minutes);
-          setItems(remapped.items);
-          setMinutes(remapped.minutes);
-          await reconcileToRemote(remapped.items, remapped.minutes, weekStart);
-        }
-        setSyncReady(true);
-      } catch {
-        // オフライン等：ローカルのまま使う。次回セッション変化でリトライ
-        syncedRef.current = false;
+  // ---- 起動時の読み込み（Supabase が正本）----
+  async function loadData() {
+    if (!supabase || !session) return;
+    setLoaded(false);
+    setLoadError(null);
+    try {
+      const remote = await pullRemote();
+      if (remote) {
+        setItems(remote.items);
+        setMinutes(remote.minutes);
+        if (remote.weekStart != null) setWeekStart(remote.weekStart);
       }
-    })();
-  }, [session, loaded]);
-
-  // 以降のローカル変更を Supabase へミラー（デバウンス）
+      setLoaded(true);
+    } catch (e) {
+      console.warn("[load] failed:", e);
+      setLoadError("データの読み込みに失敗しました。通信状況を確認してください。");
+    }
+  }
   useEffect(() => {
-    if (!supabase || !session || !syncReady) return;
-    // 安全策: 全空では同期しない（誤って全削除しないため）
-    if (items.length === 0 && Object.keys(minutes).length === 0) return;
-    const t = window.setTimeout(() => {
-      reconcileToRemote(items, minutes, weekStart).catch(() => {});
-    }, 800);
-    return () => window.clearTimeout(t);
-  }, [items, minutes, weekStart, syncReady, session]);
+    if (!supabase) {
+      // バックエンド未設定（開発時など）：永続化なしのメモリ動作
+      setLoaded(true);
+      return;
+    }
+    if (!session) {
+      setLoaded(false);
+      return;
+    }
+    loadData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session]);
+
+  // ---- 引っ張って更新（ホーム画面）----
+  // loadData と違い loaded を false にしない（全画面ローディングに切り替えず、その場で再取得）。
+  async function refreshData() {
+    if (!supabase || !session || refreshingRef.current) return;
+    refreshingRef.current = true;
+    setRefreshing(true);
+    try {
+      const remote = await pullRemote();
+      if (remote) {
+        setItems(remote.items);
+        setMinutes(remote.minutes);
+        if (remote.weekStart != null) setWeekStart(remote.weekStart);
+      }
+    } catch (e) {
+      console.warn("[refresh] failed:", e);
+    } finally {
+      refreshingRef.current = false;
+      setRefreshing(false);
+    }
+  }
+
+  // ホーム表示中のみ、ページ最上部からの下方向ドラッグで再取得する。
+  // iOS で React 合成イベントを取りこぼすことがあるため native リスナで登録。
+  useEffect(() => {
+    if (view !== "grid" || !supabase || !session || !loaded) return;
+    const THRESHOLD = 70; // この距離を超えて離すと更新
+    const onStart = (e: TouchEvent) => {
+      if (refreshingRef.current || window.scrollY > 0) {
+        pullRef.current.active = false;
+        return;
+      }
+      pullRef.current.active = true;
+      pullRef.current.startY = e.touches[0].clientY;
+      pullRef.current.dist = 0;
+    };
+    const onMove = (e: TouchEvent) => {
+      if (!pullRef.current.active || refreshingRef.current) return;
+      const dy = e.touches[0].clientY - pullRef.current.startY;
+      if (dy <= 0 || window.scrollY > 0) {
+        pullRef.current.dist = 0;
+        setPullDist(0);
+        return;
+      }
+      const d = Math.min(dy * 0.5, 90); // 抵抗をつけて最大90px
+      pullRef.current.dist = d;
+      setPullDist(d);
+    };
+    const onEnd = () => {
+      if (!pullRef.current.active) return;
+      pullRef.current.active = false;
+      const reached = pullRef.current.dist >= THRESHOLD;
+      pullRef.current.dist = 0;
+      setPullDist(0);
+      if (reached) refreshData();
+    };
+    window.addEventListener("touchstart", onStart, { passive: true });
+    window.addEventListener("touchmove", onMove, { passive: true });
+    window.addEventListener("touchend", onEnd, { passive: true });
+    window.addEventListener("touchcancel", onEnd, { passive: true });
+    return () => {
+      window.removeEventListener("touchstart", onStart);
+      window.removeEventListener("touchmove", onMove);
+      window.removeEventListener("touchend", onEnd);
+      window.removeEventListener("touchcancel", onEnd);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [view, session, loaded]);
 
   async function invite() {
     if (!supabase) return;
@@ -298,40 +371,6 @@ export default function TrainingLog() {
     }
   }
 
-  // 初期ロード
-  useEffect(() => {
-    try {
-      const rawI = localStorage.getItem(LS_ITEMS);
-      const rawM = localStorage.getItem(LS_MIN);
-      const rawW = localStorage.getItem(LS_WEEKSTART);
-      if (rawI) {
-        const parsed: Item[] = JSON.parse(rawI);
-        // 単位が無い古いデータは名前から既定を補完
-        setItems(
-          parsed.map((it) => ({ ...it, unit: it.unit ?? defaultUnit(it.name) })),
-        );
-        setMinutes(rawM ? JSON.parse(rawM) : {});
-      } else {
-        // 新規は空から開始（自動デモ投入は廃止。デモは設定の「デモ用データを投入」で）
-        setItems([]);
-        setMinutes({});
-      }
-      if (rawW !== null) setWeekStart(Number(rawW));
-    } catch {
-      setItems([]);
-      setMinutes({});
-    }
-    setLoaded(true);
-  }, []);
-
-  // 保存
-  useEffect(() => {
-    if (!loaded) return;
-    localStorage.setItem(LS_ITEMS, JSON.stringify(items));
-    localStorage.setItem(LS_MIN, JSON.stringify(minutes));
-    localStorage.setItem(LS_WEEKSTART, String(weekStart));
-  }, [items, minutes, weekStart, loaded]);
-
   // 各画面を開いたら右端（最新）へスクロール
   useEffect(() => {
     const toEnd = (r: RefObject<HTMLDivElement>) => {
@@ -361,28 +400,58 @@ export default function TrainingLog() {
     const cur = minutes[`${itemId}:${ymd(d)}`] ?? 0;
     setEditing({ itemId, date: d });
     setEditVal(cur ? String(cur) : "");
+    setCellError(null);
   }
-  function applyEditor() {
+  // 「保存」: その場で Supabase に書き込み、成功したら画面に反映。失敗はモーダルに表示。
+  async function applyEditor() {
     if (!editing) return;
-    const key = `${editing.itemId}:${ymd(editing.date)}`;
+    const itemId = editing.itemId;
+    const date = ymd(editing.date);
+    const key = `${itemId}:${date}`;
     const v = Math.max(0, Math.round(Number(editVal) || 0));
-    setMinutes((prev) => {
-      const next = { ...prev };
-      if (v > 0) next[key] = v;
-      else delete next[key];
-      return next;
-    });
-    setEditing(null);
+    setCellBusy(true);
+    setCellError(null);
+    try {
+      if (supabase) {
+        if (v > 0) await saveRecord(itemId, date, v);
+        else await deleteRecord(itemId, date);
+      }
+      setMinutes((prev) => {
+        const next = { ...prev };
+        if (v > 0) next[key] = v;
+        else delete next[key];
+        return next;
+      });
+      setEditing(null);
+    } catch (e) {
+      console.warn("[record] save failed:", e);
+      setCellError("保存に失敗しました。通信状況を確認してもう一度お試しください。");
+    } finally {
+      setCellBusy(false);
+    }
   }
-  function clearEditor() {
+  // 「クリア」: その場で Supabase から削除。
+  async function clearEditor() {
     if (!editing) return;
-    const key = `${editing.itemId}:${ymd(editing.date)}`;
-    setMinutes((prev) => {
-      const next = { ...prev };
-      delete next[key];
-      return next;
-    });
-    setEditing(null);
+    const itemId = editing.itemId;
+    const date = ymd(editing.date);
+    const key = `${itemId}:${date}`;
+    setCellBusy(true);
+    setCellError(null);
+    try {
+      if (supabase) await deleteRecord(itemId, date);
+      setMinutes((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+      setEditing(null);
+    } catch (e) {
+      console.warn("[record] delete failed:", e);
+      setCellError("削除に失敗しました。通信状況を確認してもう一度お試しください。");
+    } finally {
+      setCellBusy(false);
+    }
   }
 
   // 直近7日（今日含む）の合計（生値）
@@ -429,27 +498,72 @@ export default function TrainingLog() {
     setNewColor(COLOR_CHOICES[0]);
     setNewUnit("time");
   }
-  function loadDemo() {
-    if (
-      !confirm("既存の記録を置き換えて、デモ用データ（過去6週間）を投入します。よろしいですか？")
-    )
-      return;
-    setMinutes(seedMinutes(items));
+  async function loadDemo() {
+    const noItems = items.length === 0;
+    const msg = noItems
+      ? "デモ用の項目（ラン/バイク/脚/腕/腹筋/背筋）と過去6週間の記録を投入します。よろしいですか？"
+      : "既存の記録を置き換えて、デモ用データ（過去6週間）を投入します。よろしいですか？";
+    if (!confirm(msg)) return;
+    setDataBusy(true);
+    setDataError(null);
+    try {
+      // 項目が無ければ既定のデモ項目も作成（id は uuid を採番）
+      let list = items;
+      if (noItems) {
+        list = SEED_ITEMS.map((it) => ({ ...it, id: uuid() }));
+        if (supabase) await saveItems(list);
+        setItems(list);
+      }
+      const demo = seedMinutes(list);
+      if (supabase) await replaceAllRecords(demo);
+      setMinutes(demo);
+    } catch (e) {
+      console.warn("[demo] failed:", e);
+      setDataError("デモ用データの投入に失敗しました。");
+    } finally {
+      setDataBusy(false);
+    }
   }
-  function clearAllMinutes() {
+  async function clearAllMinutes() {
     if (!confirm("すべての記録を削除します。よろしいですか？")) return;
-    setMinutes({});
+    setDataBusy(true);
+    setDataError(null);
+    try {
+      if (supabase) await deleteAllRecords();
+      setMinutes({});
+    } catch (e) {
+      console.warn("[clear] failed:", e);
+      setDataError("記録の削除に失敗しました。");
+    } finally {
+      setDataBusy(false);
+    }
   }
   function enterSettingsEdit() {
     setSettingsSnapshot({ items, minutes, weekStart });
     setSettingsEditing(true);
     setColorPickerFor(null);
+    setSettingsError(null);
   }
-  function saveSettingsEdit() {
-    setSettingsSnapshot(null);
-    setSettingsEditing(false);
-    setColorPickerFor(null);
+  // 「保存」: 編集中の項目・週開始曜日を Supabase に反映。失敗したら編集を維持。
+  async function saveSettingsEdit() {
+    setSettingsSaving(true);
+    setSettingsError(null);
+    try {
+      if (supabase) {
+        await saveItems(items);
+        await saveWeekStart(weekStart);
+      }
+      setSettingsSnapshot(null);
+      setSettingsEditing(false);
+      setColorPickerFor(null);
+    } catch (e) {
+      console.warn("[settings] save failed:", e);
+      setSettingsError("保存に失敗しました。通信状況を確認してもう一度お試しください。");
+    } finally {
+      setSettingsSaving(false);
+    }
   }
+  // 「キャンセル」: 編集を破棄（編集中はDBに書いていないのでローカルを戻すだけ）。
   function cancelSettingsEdit() {
     if (settingsSnapshot) {
       setItems(settingsSnapshot.items);
@@ -459,6 +573,7 @@ export default function TrainingLog() {
     setSettingsSnapshot(null);
     setSettingsEditing(false);
     setColorPickerFor(null);
+    setSettingsError(null);
   }
 
   const editingItem = editing
@@ -550,6 +665,24 @@ export default function TrainingLog() {
     }
     if (!session) {
       return <AuthScreen />;
+    }
+    // データ読み込み中／失敗（Supabaseが正本）
+    if (!loaded) {
+      return loadError ? (
+        <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 px-6 text-center">
+          <p className="text-[15px] text-foreground">{loadError}</p>
+          <button
+            onClick={loadData}
+            className="rounded-xl bg-accent px-5 py-2.5 text-[16px] font-semibold text-white active:opacity-90"
+          >
+            再読み込み
+          </button>
+        </div>
+      ) : (
+        <div className="py-24 text-center text-[15px] text-muted">
+          読み込み中…
+        </div>
+      );
     }
   }
 
@@ -794,16 +927,23 @@ export default function TrainingLog() {
           </section>
 
           {/* 保存 / キャンセル */}
-          <div className="mt-7 flex gap-2">
+          {settingsError && (
+            <p className="mt-5 text-[14px] font-medium text-red-600 dark:text-red-400">
+              {settingsError}
+            </p>
+          )}
+          <div className="mt-3 flex gap-2">
             <button
               onClick={saveSettingsEdit}
-              className="flex-1 rounded-xl bg-accent px-4 py-2.5 text-[16px] font-semibold text-white active:opacity-90"
+              disabled={settingsSaving}
+              className="flex-1 rounded-xl bg-accent px-4 py-2.5 text-[16px] font-semibold text-white active:opacity-90 disabled:opacity-50"
             >
-              保存
+              {settingsSaving ? "保存中…" : "保存"}
             </button>
             <button
               onClick={cancelSettingsEdit}
-              className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-2.5 text-[16px] font-medium text-foreground"
+              disabled={settingsSaving}
+              className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-2.5 text-[16px] font-medium text-foreground disabled:opacity-50"
             >
               キャンセル
             </button>
@@ -850,26 +990,35 @@ export default function TrainingLog() {
             </div>
           </section>
 
-          {/* データ管理 */}
+          {/* データ管理（開発用）。本番ビルドでは import.meta.env.DEV が false なので非表示。 */}
+          {import.meta.env.DEV && (
           <section className="mt-7">
             <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
-              データ
+              データ（開発用）
             </h2>
             <div className="mt-2 flex gap-2">
               <button
                 onClick={loadDemo}
-                className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-2.5 text-[15px] font-medium text-slate-800 dark:border-slate-600 dark:text-slate-100"
+                disabled={dataBusy}
+                className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-2.5 text-[15px] font-medium text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:text-slate-100"
               >
                 デモ用データを投入
               </button>
               <button
                 onClick={clearAllMinutes}
-                className="flex-1 rounded-xl border border-red-300 bg-card-bg px-4 py-2.5 text-[15px] font-medium text-red-600 dark:border-red-800 dark:text-red-400"
+                disabled={dataBusy}
+                className="flex-1 rounded-xl border border-red-300 bg-card-bg px-4 py-2.5 text-[15px] font-medium text-red-600 disabled:opacity-50 dark:border-red-800 dark:text-red-400"
               >
                 全記録を削除
               </button>
             </div>
+            {dataError && (
+              <p className="mt-2 text-[14px] font-medium text-red-600 dark:text-red-400">
+                {dataError}
+              </p>
+            )}
           </section>
+          )}
 
           {/* ユーザー招待（管理者/開発者のみ） */}
           {supabase && session && (myRole === "admin" || myRole === "developer") && (
@@ -1165,7 +1314,34 @@ export default function TrainingLog() {
 
   return (
     <>
-      <div className="pb-24">
+      {/* 引っ張って更新インジケータ（最上部に固定表示） */}
+      {(pullDist > 0 || refreshing) && (
+        <div
+          className="pointer-events-none fixed inset-x-0 z-40 flex justify-center"
+          style={{
+            top: "calc(var(--safe-top) + 6px)",
+            opacity: refreshing ? 1 : Math.min(1, pullDist / 70),
+          }}
+        >
+          <div className="flex items-center gap-2 rounded-full bg-card-bg px-3 py-1.5 text-[14px] font-medium text-foreground shadow ring-1 ring-card-border">
+            {refreshing ? (
+              <>
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-slate-300 border-t-accent" />
+                更新中…
+              </>
+            ) : (
+              <span>{pullDist >= 70 ? "離して更新" : "引っ張って更新"}</span>
+            )}
+          </div>
+        </div>
+      )}
+      <div
+        className="pb-24"
+        style={{
+          transform: pullDist ? `translateY(${pullDist}px)` : undefined,
+          transition: pullRef.current.active ? "none" : "transform 0.2s ease-out",
+        }}
+      >
         {/* ヘッダー（左: CredoBody ロゴ / 右: ユーザーアイコン）。スクロールしても固定 */}
         <header
           className="sticky top-0 z-30 -mx-4 mb-3 border-b border-card-border bg-background px-4"
@@ -1177,8 +1353,19 @@ export default function TrainingLog() {
               <span className="text-[17px] font-semibold text-foreground">
                 CredoBodyRise
               </span>
+              {/* 開発ビルド (`astro dev`) でのみ LOCAL バッジを表示。
+                  本番ビルドでは import.meta.env.DEV が false なので出力されない。 */}
+              {import.meta.env.DEV && (
+                <span
+                  className="rounded bg-yellow-400 px-1.5 py-0.5 text-[11px] font-bold text-yellow-900"
+                  aria-hidden
+                >
+                  LOCAL
+                </span>
+              )}
             </div>
-            {supabase && session && (
+            <div className="flex items-center gap-2">
+              {supabase && session && (
               <button
                 onClick={() => setView("profile")}
                 className="h-9 w-9 overflow-hidden rounded-full bg-slate-200 ring-1 ring-card-border dark:bg-slate-700"
@@ -1205,7 +1392,8 @@ export default function TrainingLog() {
                   </span>
                 )}
               </button>
-            )}
+              )}
+            </div>
           </div>
         </header>
 
@@ -1399,22 +1587,31 @@ export default function TrainingLog() {
               )}
             </div>
 
+            {cellError && (
+              <p className="mt-4 text-[14px] font-medium text-red-600 dark:text-red-400">
+                {cellError}
+              </p>
+            )}
+
             <button
               onClick={applyEditor}
-              className="mt-5 w-full rounded-xl bg-accent px-4 py-2.5 text-[16px] font-semibold text-white active:opacity-90"
+              disabled={cellBusy}
+              className="mt-5 w-full rounded-xl bg-accent px-4 py-2.5 text-[16px] font-semibold text-white active:opacity-90 disabled:opacity-50"
             >
-              保存
+              {cellBusy ? "保存中…" : "保存"}
             </button>
             <div className="mt-2 flex gap-2">
               <button
                 onClick={clearEditor}
-                className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-2.5 text-[16px] font-medium text-slate-800 dark:border-slate-600 dark:text-slate-100"
+                disabled={cellBusy}
+                className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-2.5 text-[16px] font-medium text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:text-slate-100"
               >
                 クリア
               </button>
               <button
                 onClick={() => setEditing(null)}
-                className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-2.5 text-[16px] font-medium text-slate-800 dark:border-slate-600 dark:text-slate-100"
+                disabled={cellBusy}
+                className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-2.5 text-[16px] font-medium text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:text-slate-100"
               >
                 キャンセル
               </button>

@@ -1,14 +1,12 @@
 import { supabase } from "./supabase";
 
-// ローカル⇔Supabase 同期。
-// 方針: ローカル(localStorage)を正として、ログイン中はSupabaseへミラー保存する。
-//   - 初回ログイン時: リモートにデータがあれば採用、無ければローカルをアップロード。
-//   - 以降: ローカル変更を Supabase に reconcile（upsert＋不要行delete）。
-// 破壊的削除はあるが、必ず「ローカル＝正」を前提に呼ぶこと（空ローカルでは呼ばない）。
+// Supabase が唯一の正（source of truth）。普通のWebアプリと同じく、
+// 各操作はその場で Supabase に書き込み、成功/失敗を呼び出し側で扱う。
+// localStorage は記録の保存には使わない（マルチ端末対応・二重管理の排除）。
 
 export type Unit = "time" | "count";
 export type SyncItem = { id: string; name: string; color: string; unit: Unit };
-export type SyncState = {
+export type RemoteState = {
   items: SyncItem[];
   minutes: Record<string, number>;
   weekStart: number | null;
@@ -26,22 +24,26 @@ export function uuid(): string {
   });
 }
 
-// key = `${itemId}:${YYYY-MM-DD}`（itemId は uuid または旧文字列。どちらもコロンを含まない）
+// key = `${itemId}:${YYYY-MM-DD}`（itemId は uuid。コロンを含まない）
 function splitKey(k: string): [string, string] {
   const i = k.indexOf(":");
   return [k.slice(0, i), k.slice(i + 1)];
 }
 
-async function currentUserId(): Promise<string | null> {
-  if (!supabase) return null;
+async function requireUserId(): Promise<string> {
+  if (!supabase) throw new Error("Supabase 未設定");
   const { data } = await supabase.auth.getUser();
-  return data.user?.id ?? null;
+  const uid = data.user?.id;
+  if (!uid) throw new Error("未ログイン");
+  return uid;
 }
 
+// ---- 読み込み（起動時） ----
 // リモートの全データを取得。未ログイン/未設定なら null。
-export async function pullRemote(): Promise<SyncState | null> {
+export async function pullRemote(): Promise<RemoteState | null> {
   if (!supabase) return null;
-  const uid = await currentUserId();
+  const { data: u } = await supabase.auth.getUser();
+  const uid = u.user?.id;
   if (!uid) return null;
 
   const { data: itemRows, error: e1 } = await supabase
@@ -72,50 +74,56 @@ export async function pullRemote(): Promise<SyncState | null> {
   return { items, minutes, weekStart: prof?.week_start ?? null };
 }
 
-// ローカルの項目IDをuuidに振り直す（初回アップロード前。旧 "i1" 等を uuid 化）
-export function remapLocalIds(
-  items: SyncItem[],
-  minutes: Record<string, number>,
-): { items: SyncItem[]; minutes: Record<string, number> } {
-  const map = new Map<string, string>();
-  const newItems = items.map((it) => {
-    const nid = uuid();
-    map.set(it.id, nid);
-    return { ...it, id: nid };
-  });
-  const newMinutes: Record<string, number> = {};
-  for (const k of Object.keys(minutes)) {
-    const [oldId, date] = splitKey(k);
-    const nid = map.get(oldId);
-    if (nid) newMinutes[`${nid}:${date}`] = minutes[k];
-  }
-  return { items: newItems, minutes: newMinutes };
+// ---- 記録（1件ずつ即時保存） ----
+// 値>0 を1件保存（同じ item_id+date があれば上書き）。
+export async function saveRecord(
+  itemId: string,
+  date: string,
+  value: number,
+): Promise<void> {
+  const uid = await requireUserId();
+  const { error } = await supabase!
+    .from("training_records")
+    .upsert(
+      { user_id: uid, item_id: itemId, date, value },
+      { onConflict: "user_id,item_id,date" },
+    );
+  if (error) throw error;
 }
 
-// ローカル状態をリモートへ反映（ローカル＝正）。
-export async function reconcileToRemote(
-  items: SyncItem[],
-  minutes: Record<string, number>,
-  weekStart: number,
+// 記録を1件削除（値0＝未入力）。
+export async function deleteRecord(
+  itemId: string,
+  date: string,
 ): Promise<void> {
-  if (!supabase) return;
-  const uid = await currentUserId();
-  if (!uid) return;
+  const uid = await requireUserId();
+  const { error } = await supabase!
+    .from("training_records")
+    .delete()
+    .eq("user_id", uid)
+    .eq("item_id", itemId)
+    .eq("date", date);
+  if (error) throw error;
+}
 
-  // ---- 項目 ----
-  const { data: remoteItems, error: ei } = await supabase
+// ---- 項目（設定の「保存」でまとめて反映） ----
+// 現在の項目一覧を正として、upsert＋一覧に無い項目をdelete（子の記録はCASCADE削除）。
+export async function saveItems(items: SyncItem[]): Promise<void> {
+  const uid = await requireUserId();
+
+  const { data: remoteItems, error: e1 } = await supabase!
     .from("training_items")
     .select("id");
-  if (ei) throw ei;
-  const localItemIds = new Set(items.map((i) => i.id));
-  const delItemIds = (remoteItems ?? [])
+  if (e1) throw e1;
+  const localIds = new Set(items.map((i) => i.id));
+  const delIds = (remoteItems ?? [])
     .map((r) => r.id)
-    .filter((id) => !localItemIds.has(id));
-  if (delItemIds.length) {
-    const { error } = await supabase
+    .filter((id) => !localIds.has(id));
+  if (delIds.length) {
+    const { error } = await supabase!
       .from("training_items")
       .delete()
-      .in("id", delItemIds); // 子の records は ON DELETE CASCADE
+      .in("id", delIds);
     if (error) throw error;
   }
   if (items.length) {
@@ -127,37 +135,43 @@ export async function reconcileToRemote(
       unit: it.unit,
       sort_order: i,
     }));
-    const { error } = await supabase.from("training_items").upsert(rows);
+    const { error } = await supabase!.from("training_items").upsert(rows);
     if (error) throw error;
   }
+}
 
-  // ---- 記録 ----
-  const { data: remoteRecs, error: er } = await supabase
+// ---- 週開始曜日 ----
+export async function saveWeekStart(weekStart: number): Promise<void> {
+  const uid = await requireUserId();
+  const { error } = await supabase!
+    .from("profiles")
+    .update({ week_start: weekStart })
+    .eq("id", uid);
+  if (error) throw error;
+}
+
+// ---- データ管理（デモ投入／全削除） ----
+export async function deleteAllRecords(): Promise<void> {
+  const uid = await requireUserId();
+  const { error } = await supabase!
     .from("training_records")
-    .select("id,item_id,date");
-  if (er) throw er;
-  const localKeys = new Set(Object.keys(minutes));
-  const delRecIds = (remoteRecs ?? [])
-    .filter((r) => !localKeys.has(`${r.item_id}:${r.date}`))
-    .map((r) => r.id);
-  if (delRecIds.length) {
-    const { error } = await supabase
-      .from("training_records")
-      .delete()
-      .in("id", delRecIds);
-    if (error) throw error;
-  }
-  const recRows = Object.keys(minutes).map((k) => {
+    .delete()
+    .eq("user_id", uid);
+  if (error) throw error;
+}
+
+// 全記録を minutes の内容で置き換える（デモ投入用）。
+export async function replaceAllRecords(
+  minutes: Record<string, number>,
+): Promise<void> {
+  const uid = await requireUserId();
+  await deleteAllRecords();
+  const rows = Object.keys(minutes).map((k) => {
     const [itemId, date] = splitKey(k);
     return { user_id: uid, item_id: itemId, date, value: minutes[k] };
   });
-  if (recRows.length) {
-    const { error } = await supabase
-      .from("training_records")
-      .upsert(recRows, { onConflict: "user_id,item_id,date" });
+  if (rows.length) {
+    const { error } = await supabase!.from("training_records").insert(rows);
     if (error) throw error;
   }
-
-  // ---- 週開始曜日 ----
-  await supabase.from("profiles").update({ week_start: weekStart }).eq("id", uid);
 }
