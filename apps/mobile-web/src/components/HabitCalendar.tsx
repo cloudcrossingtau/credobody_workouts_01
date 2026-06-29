@@ -293,8 +293,16 @@ export default function TrainingLog() {
   useEffect(() => {
     if (view !== "grid" || !supabase || !session || !loaded) return;
     const THRESHOLD = 70; // この距離を超えて離すと更新
+    // 表(グリッド)が自身の最上部にある時だけ pull を許可。少しでもスクロールされていれば
+    // 下方向ドラッグはグリッドのスクロールに任せ、更新は発火しない（干渉を防ぐ）。
+    const atTop = () => {
+      if (window.scrollY > 0) return false;
+      const g = gridScrollRef.current;
+      if (g && g.scrollTop > 0) return false;
+      return true;
+    };
     const onStart = (e: TouchEvent) => {
-      if (refreshingRef.current || window.scrollY > 0) {
+      if (refreshingRef.current || !atTop()) {
         pullRef.current.active = false;
         return;
       }
@@ -305,7 +313,8 @@ export default function TrainingLog() {
     const onMove = (e: TouchEvent) => {
       if (!pullRef.current.active || refreshingRef.current) return;
       const dy = e.touches[0].clientY - pullRef.current.startY;
-      if (dy <= 0 || window.scrollY > 0) {
+      // 下方向以外、またはグリッドがスクロールされた瞬間に中止（グリッド側のスクロール優先）
+      if (dy <= 0 || !atTop()) {
         pullRef.current.dist = 0;
         setPullDist(0);
         return;
@@ -1127,7 +1136,8 @@ export default function TrainingLog() {
       );
     };
 
-    const fmtH = (v: number) => (Number.isInteger(v) ? `${v}` : v.toFixed(1));
+    // 分は整数。軸目盛りが端数になっても見やすいよう四捨五入して表示。
+    const fmtMin = (v: number) => `${Math.round(v)}`;
     const fmtC = (v: number) => `${v}`;
 
     // 単色の棒グラフ（色分けなし）
@@ -1220,30 +1230,30 @@ export default function TrainingLog() {
             <>
               <section className="mt-5">
                 <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
-                  時間（h）・日別
+                  時間（分）・日別
                 </h2>
                 {renderBarChart(
                   dayList.map((d) => ({
-                    value: sumDay(timeItems, d) / 60,
+                    value: sumDay(timeItems, d),
                     x: dailyX(d),
                   })),
                   TIME_COLOR,
-                  fmtH,
+                  fmtMin,
                   DAY_W,
                   timeDailyRef,
                 )}
               </section>
               <section className="mt-6">
                 <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
-                  時間（h）・週別
+                  時間（分）・週別
                 </h2>
                 {renderBarChart(
                   weekList.map((ws) => ({
-                    value: sumWeek(timeItems, ws) / 60,
+                    value: sumWeek(timeItems, ws),
                     x: weeklyX(ws),
                   })),
                   TIME_COLOR,
-                  fmtH,
+                  fmtMin,
                   WEEK_W,
                   timeWeeklyRef,
                 )}
@@ -1415,16 +1425,20 @@ export default function TrainingLog() {
                 今日へ
               </button>
             </div>
-            {/* 種目名は固定・日付部分のみ横スクロール */}
+            {/* 種目名は左固定・日付部分は横スクロール。日付ヘッダ行は縦スクロールで上端固定。 */}
             <div
               ref={gridScrollRef}
-              className="mt-3 overflow-x-auto rounded-2xl border border-card-border bg-card-bg dark:border-slate-800 dark:bg-slate-900"
+              className="mt-3 overflow-auto rounded-2xl border border-card-border bg-card-bg dark:border-slate-800 dark:bg-slate-900"
+              style={{
+                maxHeight:
+                  "calc(100dvh - var(--safe-top) - var(--safe-bottom) - 200px)",
+              }}
             >
               <div style={{ minWidth: NAME_W + gridDays.length * CELL_W }}>
-                {/* 日付ヘッダー */}
-                <div className="flex items-stretch border-b border-card-border dark:border-slate-800">
+                {/* 日付ヘッダー（縦スクロールしても上端に固定） */}
+                <div className="sticky top-0 z-30 flex items-stretch border-b border-card-border bg-card-bg dark:border-slate-800 dark:bg-slate-900">
                   <div
-                    className="sticky left-0 z-20 flex items-center border-r border-card-border bg-card-bg px-3 py-2 text-[15px] font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                    className="sticky left-0 z-40 flex items-center border-r border-card-border bg-card-bg px-3 py-2 text-[15px] font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
                     style={{ width: NAME_W }}
                   >
                     種目
