@@ -32,8 +32,11 @@ function splitKey(k: string): [string, string] {
 
 async function requireUserId(): Promise<string> {
   if (!supabase) throw new Error("Supabase 未設定");
-  const { data } = await supabase.auth.getUser();
-  const uid = data.user?.id;
+  // getSession はローカル(localStorage)から即取得（通信なし）。getUser はサーバー検証で
+  // 往復が発生するため、保存のたびに遅くなる。本人判定はRLSがサーバー側で強制するので、
+  // user_id はローカルの値で十分・安全。
+  const { data } = await supabase.auth.getSession();
+  const uid = data.session?.user?.id;
   if (!uid) throw new Error("未ログイン");
   return uid;
 }
@@ -42,8 +45,8 @@ async function requireUserId(): Promise<string> {
 // リモートの全データを取得。未ログイン/未設定なら null。
 export async function pullRemote(): Promise<RemoteState | null> {
   if (!supabase) return null;
-  const { data: u } = await supabase.auth.getUser();
-  const uid = u.user?.id;
+  const { data: s } = await supabase.auth.getSession();
+  const uid = s.session?.user?.id;
   if (!uid) return null;
 
   const { data: itemRows, error: e1 } = await supabase
