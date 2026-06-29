@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# mobile-web の docker コンテナを停止する。
+# mobile-web / admin の docker コンテナを停止する。
 
 set -u
 cd "$(dirname "$0")"
@@ -18,6 +18,7 @@ stop() {
 
 status=0
 stop mobile-web || status=1
+stop admin || status=1
 
 echo ""
 if [ $status -eq 0 ]; then

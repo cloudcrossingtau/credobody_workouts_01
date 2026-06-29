@@ -1,0 +1,54 @@
+---
+import "@/styles/global.css";
+import SidebarNav from "@/components/SidebarNav.astro";
+import { SidebarUser } from "@/components/SidebarUser";
+import { AuthCheck } from "@/components/AuthCheck";
+
+interface Props {
+  title?: string;
+  requireAuth?: boolean;
+}
+
+const { title = "CredoBodyRise 管理", requireAuth = true } = Astro.props;
+const pathname = Astro.url.pathname;
+---
+
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content="CredoBodyRise 管理画面（デスクトップ）" />
+    <meta name="theme-color" content="#2563eb" />
+    <link rel="icon" type="image/png" href="/icon.png" />
+  </head>
+  <body class="flex h-full">
+    {
+      requireAuth && (
+        <>
+          <AuthCheck client:only="react" />
+          <aside class="flex h-full w-56 shrink-0 flex-col border-r border-sidebar-border bg-sidebar-bg">
+            <div class="border-b border-sidebar-border p-5">
+              <h1 class="flex items-center gap-2 text-lg font-bold text-foreground">
+                <img src="/icon.png" alt="" class="h-7 w-7 object-contain" />
+                CredoBodyRise
+                {/* 開発ビルド(astro dev)のみ LOCAL バッジ。本番では出力されない。 */}
+                {import.meta.env.DEV && (
+                  <span class="rounded bg-yellow-400 px-1.5 py-0.5 text-[11px] font-bold text-yellow-900">
+                    LOCAL
+                  </span>
+                )}
+              </h1>
+            </div>
+            <SidebarNav pathname={pathname} />
+            <SidebarUser client:only="react" />
+          </aside>
+        </>
+      )
+    }
+    <main class="flex-1 overflow-auto">
+      <slot />
+    </main>
+  </body>
+</html>

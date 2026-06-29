@@ -1,0 +1,42 @@
+@import "tailwindcss";
+
+/* ダークモードはルート要素の .dark クラスで切り替える（現在は未使用） */
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  /* カラーパレット（CredoBody: ブルー基調＋柔らかいクール系背景） */
+  --background: #eef2f7; /* 画面全体の背景 */
+  --foreground: #1f2937; /* 基本の文字色 */
+  --card-bg: #ffffff; /* カード/グリッドの背景 */
+  --card-border: #e5e9f0; /* 枠線 */
+  --accent: #2563eb; /* 主要アクション */
+  --accent-light: #dbeafe;
+  --muted: #6b7280; /* 補助テキスト */
+
+  /* サイドバー */
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e5e9f0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card-bg: var(--card-bg);
+  --color-card-border: var(--card-border);
+  --color-accent: var(--accent);
+  --color-accent-light: var(--accent-light);
+  --color-muted: var(--muted);
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-border: var(--sidebar-border);
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+}
