@@ -52,6 +52,7 @@ export async function pullRemote(): Promise<RemoteState | null> {
   const { data: itemRows, error: e1 } = await supabase
     .from("training_items")
     .select("id,name,color,unit,sort_order")
+    .eq("user_id", uid) // 本人のデータのみ（開発者でも個人タブは本人分だけに限定）
     .order("sort_order", { ascending: true });
   if (e1) throw e1;
   const items: SyncItem[] = (itemRows ?? []).map((r) => ({
@@ -63,7 +64,8 @@ export async function pullRemote(): Promise<RemoteState | null> {
 
   const { data: recRows, error: e2 } = await supabase
     .from("training_records")
-    .select("item_id,date,value");
+    .select("item_id,date,value")
+    .eq("user_id", uid); // 本人のデータのみ
   if (e2) throw e2;
   const minutes: Record<string, number> = {};
   for (const r of recRows ?? []) minutes[`${r.item_id}:${r.date}`] = r.value;
@@ -116,7 +118,8 @@ export async function saveItems(items: SyncItem[]): Promise<void> {
 
   const { data: remoteItems, error: e1 } = await supabase!
     .from("training_items")
-    .select("id");
+    .select("id")
+    .eq("user_id", uid); // 本人の項目のみ対象（他人の項目を消さない/書き換えない）
   if (e1) throw e1;
   const localIds = new Set(items.map((i) => i.id));
   const delIds = (remoteItems ?? [])
