@@ -35,11 +35,25 @@ export function SidebarUser() {
 
   const handleLogout = async () => {
     if (!confirm("ログアウトしますか？")) return;
+    // Supabase SDK の signOut がまれに内部でハングするため、タイムアウト付きで呼び、
+    // 失敗/タイムアウト時は localStorage の sb-* を直接消して確実にログアウトする。
     try {
-      // 操作した端末だけログアウト（他端末のセッションは維持）
-      await supabase?.auth.signOut({ scope: "local" });
+      await Promise.race([
+        // 操作した端末だけログアウト（他端末のセッションは維持）
+        supabase?.auth.signOut({ scope: "local" }) ?? Promise.resolve(),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("signOut timeout")), 3000),
+        ),
+      ]);
     } catch (e) {
-      console.warn("[logout] failed:", e);
+      console.warn("[logout] signOut が失敗/タイムアウト。手動でクリアします:", e);
+      try {
+        for (const key of Object.keys(localStorage)) {
+          if (key.startsWith("sb-")) localStorage.removeItem(key);
+        }
+      } catch {
+        /* localStorage が使えない環境は無視 */
+      }
     }
     window.location.replace("/login");
   };
