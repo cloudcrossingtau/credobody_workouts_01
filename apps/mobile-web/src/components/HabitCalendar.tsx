@@ -198,7 +198,20 @@ export default function TrainingLog() {
     ) {
       setNeedsPassword(true);
     }
+    // ハング検知ウォッチドッグ: getSession がスリープ復帰後などに無言で固まると
+    // 「読み込み中」のままになるため、一定時間で返らなければ一度だけ自動リロード。
+    const RELOAD_FLAG = "cbr-auth-recovered";
+    let authSettled = false;
+    const watchdog = window.setTimeout(() => {
+      if (authSettled) return;
+      if (sessionStorage.getItem(RELOAD_FLAG)) return; // 1回だけ（ループ防止）
+      sessionStorage.setItem(RELOAD_FLAG, "1");
+      window.location.reload();
+    }, 7000);
     supabase.auth.getSession().then(({ data }) => {
+      authSettled = true;
+      window.clearTimeout(watchdog);
+      sessionStorage.removeItem(RELOAD_FLAG);
       setSession(data.session);
       setAuthChecked(true);
     });
@@ -216,7 +229,10 @@ export default function TrainingLog() {
         setLoadError(null);
       }
     });
-    return () => sub.subscription.unsubscribe();
+    return () => {
+      window.clearTimeout(watchdog);
+      sub.subscription.unsubscribe();
+    };
   }, []);
 
   // ログイン中ユーザーのプロフィール（role / アバター）を取得
