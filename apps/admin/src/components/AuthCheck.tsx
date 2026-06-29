@@ -10,8 +10,9 @@ export function AuthCheck() {
     });
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (!session) window.location.replace("/login");
+    } = supabase.auth.onAuthStateChange((event) => {
+      // 明示的なサインアウトのみ /login へ。トークン更新中の一時的な状態変化では遷移しない。
+      if (event === "SIGNED_OUT") window.location.replace("/login");
     });
     return () => subscription.unsubscribe();
   }, []);
