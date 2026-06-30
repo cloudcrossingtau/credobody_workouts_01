@@ -4,6 +4,7 @@ import SidebarNav from "@/components/SidebarNav.astro";
 import { SidebarUser } from "@/components/SidebarUser";
 import { AuthCheck } from "@/components/AuthCheck";
 import { PresenceTracker } from "@/components/PresenceTracker";
+import { AutoUpdate } from "@/components/AutoUpdate";
 
 interface Props {
   title?: string;
@@ -36,6 +37,8 @@ const pathname = Astro.url.pathname;
     <link rel="apple-touch-icon-precomposed" href="/apple-touch-icon.png" />
   </head>
   <body class="flex h-full">
+    {/* 新バージョン配信時に自動リロード（本番のみ）。認証有無に関わらず常駐。 */}
+    <AutoUpdate client:only="react" />
     {
       requireAuth && (
         <>
