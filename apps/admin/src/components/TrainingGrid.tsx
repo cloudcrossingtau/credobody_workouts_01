@@ -49,13 +49,25 @@ export function TrainingGrid({
     Math.round((today.getTime() - gStart.getTime()) / 86400000) + 1;
   const gridDays = Array.from({ length: gCount }, (_, i) => addDays(gStart, i));
 
-  // 連続する同月の列をまとめた「月バンド」用セグメント（カレンダー風の月見出し）
+  // 連続する同月の列をまとめた「月バンド」用セグメント（カレンダー風の月見出し）。
+  // 年は最初と「年が変わるところ」だけ付ける（例: 2026年12月 → 2027年1月）。
   const monthSegments: { key: string; label: string; count: number }[] = [];
+  let prevSegYear: number | null = null;
   for (const d of gridDays) {
-    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    const y = d.getFullYear();
+    const m = d.getMonth();
+    const key = `${y}-${m}`;
     const last = monthSegments[monthSegments.length - 1];
-    if (last && last.key === key) last.count += 1;
-    else monthSegments.push({ key, label: `${d.getMonth() + 1}月`, count: 1 });
+    if (last && last.key === key) {
+      last.count += 1;
+      continue;
+    }
+    const label =
+      prevSegYear === null || y !== prevSegYear
+        ? `${y}年${m + 1}月`
+        : `${m + 1}月`;
+    monthSegments.push({ key, label, count: 1 });
+    prevSegYear = y;
   }
 
   useEffect(() => {
