@@ -74,7 +74,7 @@ export function TrainingGrid({
   return (
     <div
       ref={scrollRef}
-      className="overflow-auto rounded-2xl border border-card-border bg-card-bg"
+      className="overflow-auto overscroll-none rounded-2xl border border-card-border bg-card-bg"
       style={{ maxHeight }}
     >
       <div style={{ minWidth: NAME_W + gridDays.length * CELL_W }}>

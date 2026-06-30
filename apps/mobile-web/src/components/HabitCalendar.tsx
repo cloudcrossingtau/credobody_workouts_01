@@ -1494,7 +1494,7 @@ export default function TrainingLog() {
             {/* 種目名は左固定・日付部分は横スクロール。日付ヘッダ行は縦スクロールで上端固定。 */}
             <div
               ref={gridScrollRef}
-              className="mt-3 overflow-auto overscroll-contain rounded-2xl border border-card-border bg-card-bg dark:border-slate-800 dark:bg-slate-900"
+              className="mt-3 overflow-auto overscroll-none rounded-2xl border border-card-border bg-card-bg dark:border-slate-800 dark:bg-slate-900"
               style={{
                 maxHeight:
                   "calc(100dvh - var(--safe-top) - var(--safe-bottom) - 200px)",
