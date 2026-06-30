@@ -51,11 +51,6 @@ function startOfWeek(d: Date, weekStart: number) {
 }
 const WD = ["日", "月", "火", "水", "木", "金", "土"];
 
-// 分 -> 時間（合計表示）
-function fmtHours(min: number) {
-  const h = min / 60;
-  return Number.isInteger(h) ? `${h}` : h.toFixed(1);
-}
 // 数値の見やすい目盛り
 function niceScale(maxVal: number) {
   if (maxVal <= 0) return { max: 1, step: 1 };
@@ -450,11 +445,12 @@ export default function TrainingLog() {
     }
   }
 
-  // 直近7日（今日含む）の合計（生値）
-  function recent7(itemId: string) {
+  // 今週（週開始曜日基準）の合計（生値）。週別グラフの直近の週と一致する。
+  function weekTotal(itemId: string) {
+    const ws = startOfWeek(startOfDay(new Date()), weekStart);
     let m = 0;
     for (let k = 0; k < 7; k++) {
-      m += minutes[`${itemId}:${ymd(addDays(startOfDay(new Date()), -k))}`] ?? 0;
+      m += minutes[`${itemId}:${ymd(addDays(ws, k))}`] ?? 0;
     }
     return m;
   }
@@ -1476,7 +1472,7 @@ export default function TrainingLog() {
 
                 {/* 種目行 */}
                 {items.map((it) => {
-                  const sum = recent7(it.id);
+                  const sum = weekTotal(it.id);
                   return (
                     <div
                       key={it.id}
@@ -1495,7 +1491,7 @@ export default function TrainingLog() {
                             {it.name}
                           </span>
                           <span className="block text-[12px] text-muted">
-                            7日 {it.unit === "time" ? `${fmtHours(sum)}h` : `${sum}回`}
+                            今週 {sum}{it.unit === "time" ? "分" : "回"}
                           </span>
                         </span>
                       </div>

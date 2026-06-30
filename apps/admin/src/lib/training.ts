@@ -31,12 +31,6 @@ export function startOfWeek(d: Date, weekStart: number): Date {
 }
 export const WD = ["日", "月", "火", "水", "木", "金", "土"];
 
-// 分 -> 時間（合計表示）
-export function fmtHours(min: number): string {
-  const h = min / 60;
-  return Number.isInteger(h) ? `${h}` : h.toFixed(1);
-}
-
 // 数値の見やすい目盛り
 export function niceScale(maxVal: number): { max: number; step: number } {
   if (maxVal <= 0) return { max: 1, step: 1 };

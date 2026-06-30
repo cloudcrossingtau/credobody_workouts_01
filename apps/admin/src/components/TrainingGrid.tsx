@@ -5,7 +5,7 @@ import {
   ymd,
   addDays,
   startOfDay,
-  fmtHours,
+  startOfWeek,
   WD,
   GRID_PAST_DAYS,
 } from "@/lib/training";
@@ -66,10 +66,12 @@ export function TrainingGrid({
       scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
   }, []);
 
-  function recent7(itemId: string) {
+  // 今週（週開始曜日基準）の合計（生値）。週別グラフの直近の週と一致する。
+  function weekTotal(itemId: string) {
+    const ws = startOfWeek(today, weekStart);
     let m = 0;
     for (let k = 0; k < 7; k++) {
-      m += minutes[`${itemId}:${ymd(addDays(today, -k))}`] ?? 0;
+      m += minutes[`${itemId}:${ymd(addDays(ws, k))}`] ?? 0;
     }
     return m;
   }
@@ -175,10 +177,8 @@ export function TrainingGrid({
                   {it.name}
                 </span>
                 <span className="block text-[12px] text-muted">
-                  7日{" "}
-                  {it.unit === "time"
-                    ? `${fmtHours(recent7(it.id))}h`
-                    : `${recent7(it.id)}回`}
+                  今週 {weekTotal(it.id)}
+                  {it.unit === "time" ? "分" : "回"}
                 </span>
               </span>
             </div>
