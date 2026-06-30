@@ -1437,7 +1437,16 @@ export default function TrainingLog() {
           </p>
         ) : (
           <>
-            <div className="mb-2 flex justify-end">
+            <div className="mb-2 flex justify-end gap-2">
+              {supabase && session && (
+                <button
+                  onClick={refreshData}
+                  disabled={refreshing}
+                  className="rounded-full border border-slate-300 bg-card-bg px-3 py-1 text-[13px] font-medium text-muted disabled:opacity-50"
+                >
+                  {refreshing ? "更新中…" : "更新"}
+                </button>
+              )}
               <button
                 onClick={() => {
                   if (gridScrollRef.current)
