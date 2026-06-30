@@ -1,8 +1,13 @@
 import { supabase } from "./supabase";
+import { withTimeout } from "./recover";
 
 // Supabase が唯一の正（source of truth）。普通のWebアプリと同じく、
 // 各操作はその場で Supabase に書き込み、成功/失敗を呼び出し側で扱う。
 // localStorage は記録の保存には使わない（マルチ端末対応・二重管理の排除）。
+
+// Supabase 呼び出しにタイムアウトを付ける（スリープ復帰後などに無言で固まる事象対策）。
+// 固まったら例外で返るので、呼び出し側で「失敗」として扱える（保存中のまま固定を防ぐ）。
+const to = <T>(p: PromiseLike<T>): Promise<T> => withTimeout(Promise.resolve(p));
 
 export type Unit = "time" | "count";
 export type SyncItem = { id: string; name: string; color: string; unit: Unit };
@@ -29,7 +34,7 @@ async function requireUserId(): Promise<string> {
   // getSession はローカル(localStorage)から即取得（通信なし）。getUser はサーバー検証で
   // 往復が発生するため、保存のたびに遅くなる。本人判定はRLSがサーバー側で強制するので、
   // user_id はローカルの値で十分・安全。
-  const { data } = await supabase.auth.getSession();
+  const { data } = await to(supabase.auth.getSession());
   const uid = data.session?.user?.id;
   if (!uid) throw new Error("未ログイン");
   return uid;
@@ -39,15 +44,17 @@ async function requireUserId(): Promise<string> {
 // リモートの全データを取得。未ログイン/未設定なら null。
 export async function pullRemote(): Promise<RemoteState | null> {
   if (!supabase) return null;
-  const { data: s } = await supabase.auth.getSession();
+  const { data: s } = await to(supabase.auth.getSession());
   const uid = s.session?.user?.id;
   if (!uid) return null;
 
-  const { data: itemRows, error: e1 } = await supabase
-    .from("training_items")
-    .select("id,name,color,unit,sort_order")
-    .eq("user_id", uid) // 本人のデータのみ（開発者でも個人タブは本人分だけに限定）
-    .order("sort_order", { ascending: true });
+  const { data: itemRows, error: e1 } = await to(
+    supabase
+      .from("training_items")
+      .select("id,name,color,unit,sort_order")
+      .eq("user_id", uid) // 本人のデータのみ（開発者でも個人タブは本人分だけに限定）
+      .order("sort_order", { ascending: true }),
+  );
   if (e1) throw e1;
   const items: SyncItem[] = (itemRows ?? []).map((r) => ({
     id: r.id,
@@ -56,19 +63,19 @@ export async function pullRemote(): Promise<RemoteState | null> {
     unit: r.unit,
   }));
 
-  const { data: recRows, error: e2 } = await supabase
-    .from("training_records")
-    .select("item_id,date,value")
-    .eq("user_id", uid); // 本人のデータのみ
+  const { data: recRows, error: e2 } = await to(
+    supabase
+      .from("training_records")
+      .select("item_id,date,value")
+      .eq("user_id", uid), // 本人のデータのみ
+  );
   if (e2) throw e2;
   const minutes: Record<string, number> = {};
   for (const r of recRows ?? []) minutes[`${r.item_id}:${r.date}`] = r.value;
 
-  const { data: prof } = await supabase
-    .from("profiles")
-    .select("week_start")
-    .eq("id", uid)
-    .single();
+  const { data: prof } = await to(
+    supabase.from("profiles").select("week_start").eq("id", uid).single(),
+  );
 
   return { items, minutes, weekStart: prof?.week_start ?? null };
 }
@@ -81,12 +88,14 @@ export async function saveRecord(
   value: number,
 ): Promise<void> {
   const uid = await requireUserId();
-  const { error } = await supabase!
-    .from("training_records")
-    .upsert(
-      { user_id: uid, item_id: itemId, date, value },
-      { onConflict: "user_id,item_id,date" },
-    );
+  const { error } = await to(
+    supabase!
+      .from("training_records")
+      .upsert(
+        { user_id: uid, item_id: itemId, date, value },
+        { onConflict: "user_id,item_id,date" },
+      ),
+  );
   if (error) throw error;
 }
 
@@ -96,12 +105,14 @@ export async function deleteRecord(
   date: string,
 ): Promise<void> {
   const uid = await requireUserId();
-  const { error } = await supabase!
-    .from("training_records")
-    .delete()
-    .eq("user_id", uid)
-    .eq("item_id", itemId)
-    .eq("date", date);
+  const { error } = await to(
+    supabase!
+      .from("training_records")
+      .delete()
+      .eq("user_id", uid)
+      .eq("item_id", itemId)
+      .eq("date", date),
+  );
   if (error) throw error;
 }
 
@@ -110,20 +121,18 @@ export async function deleteRecord(
 export async function saveItems(items: SyncItem[]): Promise<void> {
   const uid = await requireUserId();
 
-  const { data: remoteItems, error: e1 } = await supabase!
-    .from("training_items")
-    .select("id")
-    .eq("user_id", uid); // 本人の項目のみ対象（他人の項目を消さない/書き換えない）
+  const { data: remoteItems, error: e1 } = await to(
+    supabase!.from("training_items").select("id").eq("user_id", uid), // 本人の項目のみ対象
+  );
   if (e1) throw e1;
   const localIds = new Set(items.map((i) => i.id));
   const delIds = (remoteItems ?? [])
     .map((r) => r.id)
     .filter((id) => !localIds.has(id));
   if (delIds.length) {
-    const { error } = await supabase!
-      .from("training_items")
-      .delete()
-      .in("id", delIds);
+    const { error } = await to(
+      supabase!.from("training_items").delete().in("id", delIds),
+    );
     if (error) throw error;
   }
   if (items.length) {
@@ -135,7 +144,7 @@ export async function saveItems(items: SyncItem[]): Promise<void> {
       unit: it.unit,
       sort_order: i,
     }));
-    const { error } = await supabase!.from("training_items").upsert(rows);
+    const { error } = await to(supabase!.from("training_items").upsert(rows));
     if (error) throw error;
   }
 }
@@ -143,9 +152,8 @@ export async function saveItems(items: SyncItem[]): Promise<void> {
 // ---- 週開始曜日 ----
 export async function saveWeekStart(weekStart: number): Promise<void> {
   const uid = await requireUserId();
-  const { error } = await supabase!
-    .from("profiles")
-    .update({ week_start: weekStart })
-    .eq("id", uid);
+  const { error } = await to(
+    supabase!.from("profiles").update({ week_start: weekStart }).eq("id", uid),
+  );
   if (error) throw error;
 }
