@@ -35,7 +35,8 @@ export function TrainingGrid({
   const today = startOfDay(new Date());
   const todayStr = ymd(today);
 
-  // 表示範囲：最古の記録日〜今日（最低14日、最大 GRID_PAST_DAYS 日前まで）
+  // 表示範囲：約 GRID_PAST_DAYS 日前〜今日（mobile と同じ。過去入力できるよう広く取る）。
+  // 記録がそれより古ければ最古の記録日まで遡る。
   const recYmds = Object.keys(minutes).map((k) => k.slice(k.indexOf(":") + 1));
   const firstYmd = recYmds.length
     ? recYmds.reduce((a, b) => (a < b ? a : b))
@@ -43,9 +44,7 @@ export function TrainingGrid({
   const [fy, fm, fd] = firstYmd.split("-").map(Number);
   let gStart = new Date(fy, fm - 1, fd);
   const gMinStart = addDays(today, -GRID_PAST_DAYS);
-  if (gStart.getTime() < gMinStart.getTime()) gStart = gMinStart;
-  const minStart = addDays(today, -13);
-  if (gStart.getTime() > minStart.getTime()) gStart = minStart;
+  if (gStart.getTime() > gMinStart.getTime()) gStart = gMinStart;
   const gCount =
     Math.round((today.getTime() - gStart.getTime()) / 86400000) + 1;
   const gridDays = Array.from({ length: gCount }, (_, i) => addDays(gStart, i));
