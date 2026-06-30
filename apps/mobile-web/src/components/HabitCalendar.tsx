@@ -269,19 +269,23 @@ export default function TrainingLog() {
       setLoadError("データの読み込みに失敗しました。通信状況を確認してください。");
     }
   }
+  // 再読み込みは「ユーザーが変わったとき（ログイン/ログアウト/別ユーザー）」だけにする。
+  // session オブジェクトはトークン自動更新のたびに差し替わるため、それを依存にすると
+  // 利用中に loadData が再実行され、編集（削除など）が裏の再取得で上書きされてしまう。
+  const sessionUserId = session?.user?.id ?? null;
   useEffect(() => {
     if (!supabase) {
       // バックエンド未設定（開発時など）：永続化なしのメモリ動作
       setLoaded(true);
       return;
     }
-    if (!session) {
+    if (!sessionUserId) {
       setLoaded(false);
       return;
     }
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
+  }, [sessionUserId]);
 
   // ---- 引っ張って更新（ホーム画面）----
   // loadData と違い loaded を false にしない（全画面ローディングに切り替えず、その場で再取得）。
