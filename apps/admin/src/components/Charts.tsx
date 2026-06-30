@@ -6,6 +6,7 @@ import { pullAllUserGrids, type UserGrid } from "@/lib/devData";
 import { UserCharts } from "@/components/UserCharts";
 import { Avatar } from "@/components/Avatar";
 import { RefreshButton } from "@/components/RefreshButton";
+import { withTimeout, autoReloadOnce } from "@/lib/recover";
 import { type Item, type Minutes } from "@/lib/training";
 
 // グラフ。ロールで見える範囲が変わる:
@@ -34,13 +35,13 @@ export function Charts() {
         setLoaded(true);
         return;
       }
-      const p = await getMyProfile();
+      const p = await withTimeout(getMyProfile());
       const r = p?.role ?? "general";
       setRole(r);
       if (r === "admin" || r === "developer") {
-        setUserGrids(await pullAllUserGrids());
+        setUserGrids(await withTimeout(pullAllUserGrids()));
       } else {
-        const remote = await pullRemote();
+        const remote = await withTimeout(pullRemote());
         if (remote) {
           setItems(remote.items);
           setMinutes(remote.minutes);
@@ -50,7 +51,9 @@ export function Charts() {
       setLoaded(true);
     } catch (e) {
       console.warn("[charts] load failed:", e);
-      setLoadError("データの読み込みに失敗しました。通信状況を確認してください。");
+      if (!autoReloadOnce()) {
+        setLoadError("データの読み込みに失敗しました。通信状況を確認してください。");
+      }
     }
   }
   useEffect(() => {

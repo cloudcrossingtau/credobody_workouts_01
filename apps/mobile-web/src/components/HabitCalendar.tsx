@@ -18,6 +18,7 @@ import {
   replaceAllRecords,
   uuid,
 } from "@/lib/sync";
+import { withTimeout, autoReloadOnce } from "@/lib/recover";
 import AuthScreen from "./AuthScreen";
 import SetPasswordScreen from "./SetPasswordScreen";
 import ProfileScreen from "./ProfileScreen";
@@ -259,7 +260,7 @@ export default function TrainingLog() {
     setLoaded(false);
     setLoadError(null);
     try {
-      const remote = await pullRemote();
+      const remote = await withTimeout(pullRemote());
       if (remote) {
         setItems(remote.items);
         setMinutes(remote.minutes);
@@ -268,7 +269,10 @@ export default function TrainingLog() {
       setLoaded(true);
     } catch (e) {
       console.warn("[load] failed:", e);
-      setLoadError("データの読み込みに失敗しました。通信状況を確認してください。");
+      // ハングが疑われる時は自動リロードで復帰（ループはクールダウンで防止）。
+      if (!autoReloadOnce()) {
+        setLoadError("データの読み込みに失敗しました。通信状況を確認してください。");
+      }
     }
   }
   // 再読み込みは「ユーザーが変わったとき（ログイン/ログアウト/別ユーザー）」だけにする。
