@@ -1086,6 +1086,12 @@ export default function TrainingLog() {
 
           </>
           )}
+
+          {/* バージョン表示（不具合報告時の特定用） */}
+          <p className="mt-8 pb-2 text-center text-[12px] text-muted">
+            CredoBodyRise v{import.meta.env.PUBLIC_BUILD_VERSION} (
+            {import.meta.env.PUBLIC_BUILD_COMMIT})
+          </p>
         </div>
         {tabBar}
       </>
