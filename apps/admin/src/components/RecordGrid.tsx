@@ -5,6 +5,7 @@ import { getMyProfile, getAvatarUrl, roleLabel } from "@/lib/profile";
 import { pullAllUserGrids, type UserGrid } from "@/lib/devData";
 import { TrainingGrid } from "@/components/TrainingGrid";
 import { Avatar } from "@/components/Avatar";
+import { RefreshButton } from "@/components/RefreshButton";
 import {
   type Item,
   type Minutes,
@@ -153,12 +154,7 @@ export function RecordGrid() {
       <div className="mx-auto max-w-5xl p-6">
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-[20px] font-semibold text-foreground">ホーム</h2>
-          <button
-            onClick={loadData}
-            className="rounded-lg border border-slate-300 bg-card-bg px-3 py-1.5 text-[14px] font-medium text-slate-700 hover:bg-slate-50"
-          >
-            更新
-          </button>
+          <RefreshButton onClick={loadData} />
         </div>
         <p className="mb-5 text-[13px] text-muted">
           全ユーザーの記録を表示しています（{roleLabel(role ?? "")}・閲覧専用）。
@@ -210,12 +206,7 @@ export function RecordGrid() {
     <div className="mx-auto max-w-5xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-[20px] font-semibold text-foreground">ホーム</h2>
-        <button
-          onClick={loadData}
-          className="rounded-lg border border-slate-300 bg-card-bg px-3 py-1.5 text-[14px] font-medium text-slate-700 hover:bg-slate-50"
-        >
-          更新
-        </button>
+        <RefreshButton onClick={loadData} />
       </div>
 
       {items.length === 0 ? (

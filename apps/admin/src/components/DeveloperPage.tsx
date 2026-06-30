@@ -10,6 +10,7 @@ import {
 import { getAvatarUrl, roleLabel } from "@/lib/profile";
 import { Avatar } from "@/components/Avatar";
 import { OnlineUsers } from "@/components/OnlineUsers";
+import { RefreshButton } from "@/components/RefreshButton";
 
 function userName(u: AdminUser): string {
   return u.nickname?.trim() || u.email?.split("@")[0] || "（名称未設定）";
@@ -80,12 +81,7 @@ export function DeveloperPage() {
     <div className="mx-auto max-w-3xl p-6">
       <div className="mb-1 flex items-center justify-between">
         <h2 className="text-[20px] font-semibold text-foreground">開発</h2>
-        <button
-          onClick={load}
-          className="rounded-lg border border-slate-300 bg-card-bg px-3 py-1.5 text-[14px] font-medium text-slate-700 hover:bg-slate-50"
-        >
-          更新
-        </button>
+        <RefreshButton onClick={load} />
       </div>
       <p className="mb-5 text-[13px] text-muted">
         登録ユーザーの一覧とロール変更（開発者のみ）。

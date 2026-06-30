@@ -5,6 +5,7 @@ import { getMyProfile, getAvatarUrl, roleLabel } from "@/lib/profile";
 import { pullAllUserGrids, type UserGrid } from "@/lib/devData";
 import { UserCharts } from "@/components/UserCharts";
 import { Avatar } from "@/components/Avatar";
+import { RefreshButton } from "@/components/RefreshButton";
 import { type Item, type Minutes } from "@/lib/training";
 
 // グラフ。ロールで見える範囲が変わる:
@@ -78,12 +79,7 @@ export function Charts() {
       <div className="mx-auto max-w-5xl p-6">
         <div className="mb-1 flex items-center justify-between">
           <h2 className="text-[20px] font-semibold text-foreground">グラフ</h2>
-          <button
-            onClick={loadData}
-            className="rounded-lg border border-slate-300 bg-card-bg px-3 py-1.5 text-[14px] font-medium text-slate-700 hover:bg-slate-50"
-          >
-            更新
-          </button>
+          <RefreshButton onClick={loadData} />
         </div>
         <p className="mb-5 text-[13px] text-muted">
           全ユーザーのグラフを表示しています（{roleLabel(role ?? "")}）。登録ユーザー{" "}
@@ -137,12 +133,7 @@ export function Charts() {
     <div className="mx-auto max-w-5xl p-6">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-[20px] font-semibold text-foreground">グラフ</h2>
-        <button
-          onClick={loadData}
-          className="rounded-lg border border-slate-300 bg-card-bg px-3 py-1.5 text-[14px] font-medium text-slate-700 hover:bg-slate-50"
-        >
-          更新
-        </button>
+        <RefreshButton onClick={loadData} />
       </div>
       <UserCharts items={items} minutes={minutes} weekStart={weekStart} />
     </div>

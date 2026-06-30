@@ -50,6 +50,15 @@ export function TrainingGrid({
     Math.round((today.getTime() - gStart.getTime()) / 86400000) + 1;
   const gridDays = Array.from({ length: gCount }, (_, i) => addDays(gStart, i));
 
+  // 連続する同月の列をまとめた「月バンド」用セグメント（カレンダー風の月見出し）
+  const monthSegments: { key: string; label: string; count: number }[] = [];
+  for (const d of gridDays) {
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    const last = monthSegments[monthSegments.length - 1];
+    if (last && last.key === key) last.count += 1;
+    else monthSegments.push({ key, label: `${d.getMonth() + 1}月`, count: 1 });
+  }
+
   useEffect(() => {
     if (scrollRef.current)
       scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
@@ -78,48 +87,71 @@ export function TrainingGrid({
       style={{ maxHeight }}
     >
       <div style={{ minWidth: NAME_W + gridDays.length * CELL_W }}>
-        {/* 日付ヘッダー（縦スクロールで上端固定） */}
-        <div className="sticky top-0 z-30 flex items-stretch border-b border-card-border bg-card-bg">
-          <div
-            className="sticky left-0 z-40 flex items-center border-r border-card-border bg-card-bg px-3 py-2 text-[15px] font-semibold text-slate-700"
-            style={{ width: NAME_W }}
-          >
-            種目
-          </div>
-          {gridDays.map((d, i) => {
-            const isToday = ymd(d) === todayStr;
-            const wd = d.getDay();
-            const isWeekStart = wd === weekStart;
-            const isFirst = d.getDate() === 1;
-            return (
+        {/* 日付ヘッダー（縦スクロールで上端固定）。月バンド＋曜日/日の2段。 */}
+        <div className="sticky top-0 z-30 bg-card-bg">
+          {/* 月バンド（横スクロールしても見えている月のラベルは左に残る） */}
+          <div className="flex items-stretch">
+            <div
+              className="sticky left-0 z-40 bg-card-bg"
+              style={{ width: NAME_W }}
+            />
+            {monthSegments.map((seg) => (
               <div
-                key={i}
-                className={`shrink-0 py-2 text-center ${
-                  isWeekStart ? "border-l border-slate-300" : ""
-                }`}
-                style={{ width: CELL_W }}
+                key={seg.key}
+                className="shrink-0 border-l border-slate-200 py-1 first:border-l-0"
+                style={{ width: seg.count * CELL_W }}
               >
-                <div
-                  className={`text-[13px] ${
-                    wd === 0
-                      ? "text-red-500"
-                      : wd === 6
-                        ? "text-blue-500"
-                        : "text-muted"
-                  }`}
+                <span
+                  className="sticky inline-block px-1.5 text-[12px] font-semibold text-muted"
+                  style={{ left: NAME_W }}
                 >
-                  {WD[wd]}
-                </div>
-                <div
-                  className={`mx-auto mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[14px] font-semibold ${
-                    isToday ? "bg-accent text-white" : "text-slate-800"
-                  }`}
-                >
-                  {isFirst ? `${d.getMonth() + 1}/1` : d.getDate()}
-                </div>
+                  {seg.label}
+                </span>
               </div>
-            );
-          })}
+            ))}
+          </div>
+          {/* 曜日 + 日 */}
+          <div className="flex items-stretch border-b border-card-border">
+            <div
+              className="sticky left-0 z-40 flex items-center border-r border-card-border bg-card-bg px-3 py-2 text-[15px] font-semibold text-slate-700"
+              style={{ width: NAME_W }}
+            >
+              種目
+            </div>
+            {gridDays.map((d, i) => {
+              const isToday = ymd(d) === todayStr;
+              const wd = d.getDay();
+              const isWeekStart = wd === weekStart;
+              return (
+                <div
+                  key={i}
+                  className={`shrink-0 py-2 text-center ${
+                    isWeekStart ? "border-l border-slate-300" : ""
+                  }`}
+                  style={{ width: CELL_W }}
+                >
+                  <div
+                    className={`text-[13px] ${
+                      wd === 0
+                        ? "text-red-500"
+                        : wd === 6
+                          ? "text-blue-500"
+                          : "text-muted"
+                    }`}
+                  >
+                    {WD[wd]}
+                  </div>
+                  <div
+                    className={`mx-auto mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[14px] font-semibold ${
+                      isToday ? "bg-accent text-white" : "text-slate-800"
+                    }`}
+                  >
+                    {d.getDate()}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* 種目行 */}
