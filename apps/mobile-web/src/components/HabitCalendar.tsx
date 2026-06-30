@@ -120,6 +120,8 @@ const AXIS_W = 32; // y軸ラベル幅(px)
 const DAY_W = 44; // 日別バー1本ぶんの幅(px)
 const WEEK_W = 64; // 週別バー1本ぶんの幅(px)
 const GRID_PAST_DAYS = 180; // 記録グリッドで遡れる日数（最大スクロール範囲）
+// 引っ張って更新: 表の横スクロールと干渉するため現在は無効。再取得はログイン時に行う。
+const ENABLE_PULL_TO_REFRESH = false;
 const NAME_W = 88; // 種目名カラム幅(px)
 const CELL_W = 44; // 記録グリッドの1日セル幅(px)
 
@@ -310,7 +312,9 @@ export default function TrainingLog() {
 
   // ホーム表示中のみ、ページ最上部からの下方向ドラッグで再取得する。
   // iOS で React 合成イベントを取りこぼすことがあるため native リスナで登録。
+  // ※ 表の横スクロールと干渉するため現在は無効化（ENABLE_PULL_TO_REFRESH=false）。
   useEffect(() => {
+    if (!ENABLE_PULL_TO_REFRESH) return;
     if (view !== "grid" || !supabase || !session || !loaded) return;
     const THRESHOLD = 70; // この距離を超えて離すと更新
     // 表(グリッド)が自身の最上部にある時だけ pull を許可。少しでもスクロールされていれば
