@@ -1346,6 +1346,15 @@ export default function TrainingLog() {
     Math.round((gToday.getTime() - gStart.getTime()) / 86400000) + 1;
   const gridDays = Array.from({ length: gCount }, (_, i) => addDays(gStart, i));
 
+  // 連続する同月の列をまとめた「月バンド」用セグメント（カレンダー風の月見出し）
+  const monthSegments: { key: string; label: string; count: number }[] = [];
+  for (const d of gridDays) {
+    const key = `${d.getFullYear()}-${d.getMonth()}`;
+    const last = monthSegments[monthSegments.length - 1];
+    if (last && last.key === key) last.count += 1;
+    else monthSegments.push({ key, label: `${d.getMonth() + 1}月`, count: 1 });
+  }
+
   return (
     <>
       {/* 引っ張って更新インジケータ（最上部に固定表示） */}
@@ -1442,9 +1451,21 @@ export default function TrainingLog() {
                 <button
                   onClick={refreshData}
                   disabled={refreshing}
-                  className="rounded-full border border-slate-300 bg-card-bg px-3 py-1 text-[13px] font-medium text-muted disabled:opacity-50"
+                  aria-label="更新"
+                  title="更新"
+                  className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-card-bg text-slate-600 disabled:opacity-50 dark:border-slate-600 dark:text-slate-300"
                 >
-                  {refreshing ? "更新中…" : "更新"}
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`h-5 w-5 ${refreshing ? "animate-spin" : ""}`}
+                  >
+                    <path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
                 </button>
               )}
               <button
@@ -1453,9 +1474,21 @@ export default function TrainingLog() {
                     gridScrollRef.current.scrollLeft =
                       gridScrollRef.current.scrollWidth;
                 }}
-                className="rounded-full border border-slate-300 bg-card-bg px-3 py-1 text-[13px] font-medium text-muted"
+                aria-label="今日へ"
+                title="今日へ"
+                className="flex h-9 w-9 items-center justify-center rounded-full border border-slate-300 bg-card-bg text-slate-600 dark:border-slate-600 dark:text-slate-300"
               >
-                今日へ
+                <svg
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.8}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  className="h-5 w-5"
+                >
+                  <path d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                </svg>
               </button>
             </div>
             {/* 種目名は左固定・日付部分は横スクロール。日付ヘッダ行は縦スクロールで上端固定。 */}
@@ -1468,52 +1501,75 @@ export default function TrainingLog() {
               }}
             >
               <div style={{ minWidth: NAME_W + gridDays.length * CELL_W }}>
-                {/* 日付ヘッダー（縦スクロールしても上端に固定） */}
-                <div className="sticky top-0 z-30 flex items-stretch border-b border-card-border bg-card-bg dark:border-slate-800 dark:bg-slate-900">
-                  <div
-                    className="sticky left-0 z-40 flex items-center border-r border-card-border bg-card-bg px-3 py-2 text-[15px] font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
-                    style={{ width: NAME_W }}
-                  >
-                    種目
-                  </div>
-                  {gridDays.map((d, i) => {
-                    const isToday = ymd(d) === todayStr;
-                    const wd = d.getDay();
-                    const isWeekStart = wd === weekStart;
-                    const isFirst = d.getDate() === 1;
-                    return (
+                {/* 日付ヘッダー（縦スクロールしても上端に固定）。月バンド＋曜日/日の2段。 */}
+                <div className="sticky top-0 z-30 bg-card-bg dark:bg-slate-900">
+                  {/* 月バンド（横スクロールしても、見えている月のラベルは左に残る） */}
+                  <div className="flex items-stretch">
+                    <div
+                      className="sticky left-0 z-40 bg-card-bg dark:bg-slate-900"
+                      style={{ width: NAME_W }}
+                    />
+                    {monthSegments.map((seg) => (
                       <div
-                        key={i}
-                        className={`shrink-0 py-2 text-center ${
-                          isWeekStart
-                            ? "border-l border-slate-300 dark:border-slate-600"
-                            : ""
-                        }`}
-                        style={{ width: CELL_W }}
+                        key={seg.key}
+                        className="shrink-0 border-l border-slate-200 py-1 first:border-l-0 dark:border-slate-700"
+                        style={{ width: seg.count * CELL_W }}
                       >
-                        <div
-                          className={`text-[13px] ${
-                            wd === 0
-                              ? "text-red-500"
-                              : wd === 6
-                                ? "text-blue-500"
-                                : "text-muted"
-                          }`}
+                        <span
+                          className="sticky inline-block px-1.5 text-[12px] font-semibold text-muted"
+                          style={{ left: NAME_W }}
                         >
-                          {WD[wd]}
-                        </div>
-                        <div
-                          className={`mx-auto mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[14px] font-semibold ${
-                            isToday
-                              ? "bg-accent text-white"
-                              : "text-slate-800 dark:text-slate-100"
-                          }`}
-                        >
-                          {isFirst ? `${d.getMonth() + 1}/1` : d.getDate()}
-                        </div>
+                          {seg.label}
+                        </span>
                       </div>
-                    );
-                  })}
+                    ))}
+                  </div>
+                  {/* 曜日 + 日 */}
+                  <div className="flex items-stretch border-b border-card-border dark:border-slate-800">
+                    <div
+                      className="sticky left-0 z-40 flex items-center border-r border-card-border bg-card-bg px-3 py-2 text-[15px] font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                      style={{ width: NAME_W }}
+                    >
+                      種目
+                    </div>
+                    {gridDays.map((d, i) => {
+                      const isToday = ymd(d) === todayStr;
+                      const wd = d.getDay();
+                      const isWeekStart = wd === weekStart;
+                      return (
+                        <div
+                          key={i}
+                          className={`shrink-0 py-2 text-center ${
+                            isWeekStart
+                              ? "border-l border-slate-300 dark:border-slate-600"
+                              : ""
+                          }`}
+                          style={{ width: CELL_W }}
+                        >
+                          <div
+                            className={`text-[13px] ${
+                              wd === 0
+                                ? "text-red-500"
+                                : wd === 6
+                                  ? "text-blue-500"
+                                  : "text-muted"
+                            }`}
+                          >
+                            {WD[wd]}
+                          </div>
+                          <div
+                            className={`mx-auto mt-0.5 flex h-6 min-w-6 items-center justify-center rounded-full px-1 text-[14px] font-semibold ${
+                              isToday
+                                ? "bg-accent text-white"
+                                : "text-slate-800 dark:text-slate-100"
+                            }`}
+                          >
+                            {d.getDate()}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* 種目行 */}
