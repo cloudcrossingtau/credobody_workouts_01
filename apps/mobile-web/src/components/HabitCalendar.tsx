@@ -14,8 +14,6 @@ import {
   deleteRecord,
   saveItems,
   saveWeekStart,
-  deleteAllRecords,
-  replaceAllRecords,
   uuid,
 } from "@/lib/sync";
 import { withTimeout, autoReloadOnce } from "@/lib/recover";
@@ -68,15 +66,6 @@ function niceScale(maxVal: number) {
   return { max: Math.ceil(maxVal / step) * step, step };
 }
 
-// ---- 初期サンプル（縦軸＝トレーニング項目 / 設定画面で編集可） ----
-const SEED_ITEMS: Item[] = [
-  { id: "i1", name: "ラン", color: "#3b82f6", unit: "time" },
-  { id: "i2", name: "バイク", color: "#06b6d4", unit: "time" },
-  { id: "i3", name: "脚", color: "#10b981", unit: "count" },
-  { id: "i4", name: "腕", color: "#f59e0b", unit: "count" },
-  { id: "i5", name: "腹筋", color: "#ef4444", unit: "count" },
-  { id: "i6", name: "背筋", color: "#8b5cf6", unit: "count" },
-];
 const COLOR_CHOICES = [
   "#3b82f6", "#06b6d4", "#10b981", "#f59e0b", "#ef4444",
   "#8b5cf6", "#ec4899", "#14b8a6",
@@ -87,34 +76,6 @@ const QUICK_COUNT = [1, 2, 3, 4, 5];
 // グラフ色（色分けはしない＝グループごとに単色）
 const TIME_COLOR = "#3b82f6";
 const COUNT_COLOR = "#10b981";
-
-// ---- デモ用データ生成（過去42日ぶん。項目ごとに曜日パターンで実施） ----
-function seedMinutes(list: Item[]): Minutes {
-  const m: Minutes = {};
-  const today = startOfDay(new Date());
-  const patterns = [
-    [1, 3, 5, 0], // 月水金日
-    [6, 0], //       土日
-    [2, 4], //       火木
-    [1, 4], //       月木
-    [2, 5], //       火金
-    [3, 6], //       水土
-  ];
-  for (let back = 0; back < 42; back++) {
-    const d = addDays(today, -back);
-    const dow = d.getDay();
-    list.forEach((it, idx) => {
-      const p = patterns[idx % patterns.length];
-      if (!p.includes(dow)) return;
-      m[`${it.id}:${ymd(d)}`] =
-        it.unit === "time"
-          ? 30 + ((back * 7 + idx * 13 + dow * 5) % 5) * 15 // 30〜90分
-          : 1 + ((back * 3 + idx * 7 + dow * 2) % 4); // 1〜4回
-    });
-  }
-  return m;
-}
-
 
 const CHART_H = 160; // グラフ描画領域の高さ(px)
 const AXIS_W = 32; // y軸ラベル幅(px)
@@ -152,8 +113,6 @@ export default function TrainingLog() {
   const [cellError, setCellError] = useState<string | null>(null);
   const [settingsSaving, setSettingsSaving] = useState(false);
   const [settingsError, setSettingsError] = useState<string | null>(null);
-  const [dataBusy, setDataBusy] = useState(false);
-  const [dataError, setDataError] = useState<string | null>(null);
   // 招待メール/再設定リンク経由＝初回パスワード設定が必要
   const [needsPassword, setNeedsPassword] = useState(false);
   // 招待フォーム
@@ -534,46 +493,6 @@ export default function TrainingLog() {
     setNewName("");
     setNewColor(COLOR_CHOICES[0]);
     setNewUnit("time");
-  }
-  async function loadDemo() {
-    const noItems = items.length === 0;
-    const msg = noItems
-      ? "デモ用の項目（ラン/バイク/脚/腕/腹筋/背筋）と過去6週間の記録を投入します。よろしいですか？"
-      : "既存の記録を置き換えて、デモ用データ（過去6週間）を投入します。よろしいですか？";
-    if (!confirm(msg)) return;
-    setDataBusy(true);
-    setDataError(null);
-    try {
-      // 項目が無ければ既定のデモ項目も作成（id は uuid を採番）
-      let list = items;
-      if (noItems) {
-        list = SEED_ITEMS.map((it) => ({ ...it, id: uuid() }));
-        if (supabase) await saveItems(list);
-        setItems(list);
-      }
-      const demo = seedMinutes(list);
-      if (supabase) await replaceAllRecords(demo);
-      setMinutes(demo);
-    } catch (e) {
-      console.warn("[demo] failed:", e);
-      setDataError("デモ用データの投入に失敗しました。");
-    } finally {
-      setDataBusy(false);
-    }
-  }
-  async function clearAllMinutes() {
-    if (!confirm("すべての記録を削除します。よろしいですか？")) return;
-    setDataBusy(true);
-    setDataError(null);
-    try {
-      if (supabase) await deleteAllRecords();
-      setMinutes({});
-    } catch (e) {
-      console.warn("[clear] failed:", e);
-      setDataError("記録の削除に失敗しました。");
-    } finally {
-      setDataBusy(false);
-    }
   }
   function enterSettingsEdit() {
     setSettingsSnapshot({ items, minutes, weekStart });
@@ -1026,36 +945,6 @@ export default function TrainingLog() {
               )}
             </div>
           </section>
-
-          {/* データ管理（開発用）。本番ビルドでは import.meta.env.DEV が false なので非表示。 */}
-          {import.meta.env.DEV && (
-          <section className="mt-7">
-            <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
-              データ（開発用）
-            </h2>
-            <div className="mt-2 flex gap-2">
-              <button
-                onClick={loadDemo}
-                disabled={dataBusy}
-                className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-2.5 text-[15px] font-medium text-slate-800 disabled:opacity-50 dark:border-slate-600 dark:text-slate-100"
-              >
-                デモ用データを投入
-              </button>
-              <button
-                onClick={clearAllMinutes}
-                disabled={dataBusy}
-                className="flex-1 rounded-xl border border-red-300 bg-card-bg px-4 py-2.5 text-[15px] font-medium text-red-600 disabled:opacity-50 dark:border-red-800 dark:text-red-400"
-              >
-                全記録を削除
-              </button>
-            </div>
-            {dataError && (
-              <p className="mt-2 text-[14px] font-medium text-red-600 dark:text-red-400">
-                {dataError}
-              </p>
-            )}
-          </section>
-          )}
 
           {/* ユーザー招待（管理者/開発者のみ） */}
           {supabase && session && (myRole === "admin" || myRole === "developer") && (

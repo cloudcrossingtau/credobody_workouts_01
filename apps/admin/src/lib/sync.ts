@@ -24,12 +24,6 @@ export function uuid(): string {
   });
 }
 
-// key = `${itemId}:${YYYY-MM-DD}`（itemId は uuid。コロンを含まない）
-function splitKey(k: string): [string, string] {
-  const i = k.indexOf(":");
-  return [k.slice(0, i), k.slice(i + 1)];
-}
-
 async function requireUserId(): Promise<string> {
   if (!supabase) throw new Error("Supabase 未設定");
   // getSession はローカル(localStorage)から即取得（通信なし）。getUser はサーバー検証で
@@ -154,30 +148,4 @@ export async function saveWeekStart(weekStart: number): Promise<void> {
     .update({ week_start: weekStart })
     .eq("id", uid);
   if (error) throw error;
-}
-
-// ---- データ管理（デモ投入／全削除） ----
-export async function deleteAllRecords(): Promise<void> {
-  const uid = await requireUserId();
-  const { error } = await supabase!
-    .from("training_records")
-    .delete()
-    .eq("user_id", uid);
-  if (error) throw error;
-}
-
-// 全記録を minutes の内容で置き換える（デモ投入用）。
-export async function replaceAllRecords(
-  minutes: Record<string, number>,
-): Promise<void> {
-  const uid = await requireUserId();
-  await deleteAllRecords();
-  const rows = Object.keys(minutes).map((k) => {
-    const [itemId, date] = splitKey(k);
-    return { user_id: uid, item_id: itemId, date, value: minutes[k] };
-  });
-  if (rows.length) {
-    const { error } = await supabase!.from("training_records").insert(rows);
-    if (error) throw error;
-  }
 }
