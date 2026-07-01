@@ -1,4 +1,5 @@
 import { supabase } from "./supabase";
+import { withTimeout, TimeoutError } from "./recover";
 
 // 開発者向けのユーザー管理。RLS: developer は profiles を全件参照（is_admin）・更新可。
 export type Role = "general" | "admin" | "developer" | "trainer";
@@ -47,9 +48,24 @@ export async function updateUserRole(id: string, role: Role): Promise<void> {
 // DB（profiles/training_items/training_records）は auth.users の CASCADE で連動削除。
 export async function deleteUser(id: string): Promise<void> {
   if (!supabase) throw new Error("Supabase 未設定");
-  const { error } = await supabase.functions.invoke("delete-user", {
-    body: { user_id: id },
-  });
+  // invoke 自体はタイムアウトを持たないため withTimeout で必ず数秒で settle させる。
+  // 破壊的操作なので自動リトライはしない（時間切れ時は再読み込みで結果確認を促す）。
+  let result: Awaited<ReturnType<NonNullable<typeof supabase>["functions"]["invoke"]>>;
+  try {
+    result = await withTimeout(
+      supabase.functions.invoke("delete-user", { body: { user_id: id } }),
+      20000,
+      "delete-user",
+    );
+  } catch (e) {
+    if (e instanceof TimeoutError) {
+      throw new Error(
+        "時間内に応答がありませんでした。通信が不安定な可能性があります。画面を再読み込みして、削除できているか確認してください。",
+      );
+    }
+    throw e;
+  }
+  const { error } = result;
   if (error) {
     // Edge Function が返した JSON の error メッセージを拾う
     let detail = error.message;

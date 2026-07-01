@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { getMyProfile } from "@/lib/profile";
+import { withTimeout, TimeoutError } from "@/lib/recover";
 
 // 管理タブ。管理者/開発者向けの管理系機能（まずはユーザー招待）。今後ここに追加していく。
 export function AdminPage() {
@@ -24,9 +25,14 @@ export function AdminPage() {
     setBusy(true);
     setMsg(null);
     try {
-      const { error } = await supabase.functions.invoke("invite-user", {
-        body: { email: em, redirectTo: window.location.origin },
-      });
+      // invoke 自体はタイムアウトを持たないため withTimeout で必ず数秒で settle させる。
+      const { error } = await withTimeout(
+        supabase.functions.invoke("invite-user", {
+          body: { email: em, redirectTo: window.location.origin },
+        }),
+        15000,
+        "invite-user",
+      );
       if (error) {
         let detail = error.message;
         const ctx = (error as { context?: Response }).context;
@@ -43,7 +49,15 @@ export function AdminPage() {
       setMsg(`${em} に招待メールを送信しました。`);
       setEmail("");
     } catch (e) {
-      setMsg("招待に失敗しました：" + (e instanceof Error ? e.message : "不明なエラー"));
+      if (e instanceof TimeoutError) {
+        setMsg(
+          "時間内に応答がありませんでした。通信状況を確認して、もう一度お試しください。",
+        );
+      } else {
+        setMsg(
+          "招待に失敗しました：" + (e instanceof Error ? e.message : "不明なエラー"),
+        );
+      }
     } finally {
       setBusy(false);
     }
