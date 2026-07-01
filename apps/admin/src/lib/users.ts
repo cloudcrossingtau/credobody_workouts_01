@@ -41,3 +41,27 @@ export async function updateUserRole(id: string, role: Role): Promise<void> {
   const { error } = await supabase.from("profiles").update({ role }).eq("id", id);
   if (error) throw error;
 }
+
+// ユーザーをアカウントごと完全削除する（開発者のみ）。
+// service_role が必要なので Edge Function delete-user 経由で実行する。
+// DB（profiles/training_items/training_records）は auth.users の CASCADE で連動削除。
+export async function deleteUser(id: string): Promise<void> {
+  if (!supabase) throw new Error("Supabase 未設定");
+  const { error } = await supabase.functions.invoke("delete-user", {
+    body: { user_id: id },
+  });
+  if (error) {
+    // Edge Function が返した JSON の error メッセージを拾う
+    let detail = error.message;
+    const ctx = (error as { context?: Response }).context;
+    if (ctx && typeof ctx.json === "function") {
+      try {
+        const b = await ctx.json();
+        if (b?.error) detail = b.error;
+      } catch {
+        /* JSON でなければ message のまま */
+      }
+    }
+    throw new Error(detail);
+  }
+}

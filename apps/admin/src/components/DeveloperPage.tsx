@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import {
   listAllUsers,
   updateUserRole,
+  deleteUser,
   currentUserId,
   ROLES,
   type AdminUser,
@@ -26,6 +27,11 @@ export function DeveloperPage() {
   const [draft, setDraft] = useState<Record<string, Role>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
   const [rowMsg, setRowMsg] = useState<Record<string, string>>({});
+  // 削除確認モーダルの対象ユーザーと、確認入力中のメールアドレス
+  const [delTarget, setDelTarget] = useState<AdminUser | null>(null);
+  const [delEmail, setDelEmail] = useState("");
+  const [delBusy, setDelBusy] = useState(false);
+  const [delErr, setDelErr] = useState<string | null>(null);
 
   async function load() {
     setError(null);
@@ -74,6 +80,30 @@ export function DeveloperPage() {
       setRowMsg((m) => ({ ...m, [u.id]: "保存に失敗しました" }));
     } finally {
       setSavingId(null);
+    }
+  }
+
+  function openDelete(u: AdminUser) {
+    setDelTarget(u);
+    setDelEmail("");
+    setDelErr(null);
+  }
+
+  async function confirmDelete() {
+    if (!delTarget) return;
+    setDelBusy(true);
+    setDelErr(null);
+    try {
+      await deleteUser(delTarget.id);
+      setUsers((prev) => (prev ? prev.filter((x) => x.id !== delTarget.id) : prev));
+      setDelTarget(null);
+    } catch (e) {
+      console.warn("[developer] delete failed:", e);
+      setDelErr(
+        "削除に失敗しました：" + (e instanceof Error ? e.message : "不明なエラー"),
+      );
+    } finally {
+      setDelBusy(false);
     }
   }
 
@@ -146,6 +176,14 @@ export function DeveloperPage() {
                   >
                     {savingId === u.id ? "保存中…" : "保存"}
                   </button>
+                  {!isMe && (
+                    <button
+                      onClick={() => openDelete(u)}
+                      className="rounded-lg border border-red-300 px-3 py-2 text-[14px] font-semibold text-red-600 hover:bg-red-50"
+                    >
+                      削除
+                    </button>
+                  )}
                   {rowMsg[u.id] && (
                     <span
                       className={`w-full text-right text-[13px] ${
@@ -163,9 +201,58 @@ export function DeveloperPage() {
           </div>
 
           <p className="mt-6 text-[12px] text-muted">
-            ※ ユーザーの削除（アカウント削除）は管理者キーが必要なため、現在は未対応です。
+            ※ 削除するとアカウントと記録・項目・アバターがすべて完全に削除されます（元に戻せません）。
           </p>
         </>
+      )}
+
+      {delTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl border border-card-border bg-card-bg p-6 shadow-lg">
+            <h3 className="text-[17px] font-semibold text-red-600">
+              ユーザーを削除
+            </h3>
+            <p className="mt-3 text-[14px] text-foreground">
+              <span className="font-semibold">{userName(delTarget)}</span>（
+              {delTarget.email ?? "-"}）のアカウントと、すべての記録・トレーニング項目・アバターを
+              <span className="font-semibold text-red-600">完全に削除</span>します。
+              この操作は元に戻せません。
+            </p>
+            <p className="mt-4 text-[13px] text-muted">
+              確認のため、対象のメールアドレスを入力してください。
+            </p>
+            <input
+              type="email"
+              inputMode="email"
+              autoCapitalize="none"
+              value={delEmail}
+              onChange={(e) => setDelEmail(e.target.value)}
+              placeholder={delTarget.email ?? "メールアドレス"}
+              className="mt-2 w-full rounded-lg border border-slate-300 bg-card-bg px-3 py-2.5 text-[16px] text-slate-900 placeholder:text-slate-400"
+            />
+            {delErr && <p className="mt-3 text-[14px] text-red-600">{delErr}</p>}
+            <div className="mt-5 flex justify-end gap-2">
+              <button
+                onClick={() => setDelTarget(null)}
+                disabled={delBusy}
+                className="rounded-lg border border-slate-300 px-4 py-2 text-[15px] font-semibold text-slate-800 disabled:opacity-40"
+              >
+                キャンセル
+              </button>
+              <button
+                onClick={confirmDelete}
+                disabled={
+                  delBusy ||
+                  delEmail.trim().toLowerCase() !==
+                    (delTarget.email ?? "").trim().toLowerCase()
+                }
+                className="rounded-lg bg-red-600 px-4 py-2 text-[15px] font-semibold text-white disabled:opacity-40"
+              >
+                {delBusy ? "削除中…" : "完全に削除する"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
