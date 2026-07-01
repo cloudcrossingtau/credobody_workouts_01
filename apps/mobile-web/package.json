@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@astrojs/react": "^5.0.0",
-    "@supabase/supabase-js": "^2.103.0",
+    "@supabase/supabase-js": "2.103.0",
     "@tailwindcss/vite": "4.2.4",
     "@types/react": "^19.2.17",
     "@types/react-dom": "^19.2.3",
