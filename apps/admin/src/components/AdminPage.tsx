@@ -27,9 +27,10 @@ export function AdminPage() {
     try {
       // invoke 自体はタイムアウトを持たないため withTimeout で必ず数秒で settle させる。
       const { error } = await withTimeout(
-        supabase.functions.invoke("invite-user", {
-          body: { email: em, redirectTo: window.location.origin },
-        }),
+        () =>
+          supabase.functions.invoke("invite-user", {
+            body: { email: em, redirectTo: window.location.origin },
+          }),
         15000,
         "invite-user",
       );

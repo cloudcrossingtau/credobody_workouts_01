@@ -53,7 +53,7 @@ export async function deleteUser(id: string): Promise<void> {
   let result: Awaited<ReturnType<NonNullable<typeof supabase>["functions"]["invoke"]>>;
   try {
     result = await withTimeout(
-      supabase.functions.invoke("delete-user", { body: { user_id: id } }),
+      () => supabase.functions.invoke("delete-user", { body: { user_id: id } }),
       20000,
       "delete-user",
     );

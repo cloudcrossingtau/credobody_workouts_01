@@ -7,7 +7,8 @@ import { withTimeout } from "./recover";
 
 // Supabase 呼び出しにタイムアウトを付ける（スリープ復帰後などに無言で固まる事象対策）。
 // 固まったら例外で返るので、呼び出し側で「失敗」として扱える（保存中のまま固定を防ぐ）。
-const to = <T>(p: PromiseLike<T>): Promise<T> => withTimeout(Promise.resolve(p));
+const to = <T>(p: PromiseLike<T>): Promise<T> =>
+  withTimeout(() => Promise.resolve(p), 8000, "sync");
 
 export type Unit = "time" | "count";
 export type SyncItem = { id: string; name: string; color: string; unit: Unit };

@@ -16,7 +16,7 @@ import {
   saveWeekStart,
   uuid,
 } from "@/lib/sync";
-import { withTimeout, autoReloadOnce } from "@/lib/recover";
+import { withRetry, autoReloadOnce } from "@/lib/recover";
 import AuthScreen from "./AuthScreen";
 import SetPasswordScreen from "./SetPasswordScreen";
 import ProfileScreen from "./ProfileScreen";
@@ -214,7 +214,11 @@ export default function TrainingLog() {
     setLoaded(false);
     setLoadError(null);
     try {
-      const remote = await withTimeout(pullRemote());
+      const remote = await withRetry(() => pullRemote(), {
+        timeoutMs: 5000,
+        maxAttempts: 3,
+        label: "pullRemote",
+      });
       if (remote) {
         setItems(remote.items);
         setMinutes(remote.minutes);

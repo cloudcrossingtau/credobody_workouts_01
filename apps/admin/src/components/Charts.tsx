@@ -6,7 +6,7 @@ import { pullAllUserGrids, type UserGrid } from "@/lib/devData";
 import { UserCharts } from "@/components/UserCharts";
 import { Avatar } from "@/components/Avatar";
 import { RefreshButton } from "@/components/RefreshButton";
-import { withTimeout, autoReloadOnce } from "@/lib/recover";
+import { withRetry, autoReloadOnce } from "@/lib/recover";
 import { type Item, type Minutes } from "@/lib/training";
 
 // グラフ。ロールで見える範囲が変わる:
@@ -35,13 +35,27 @@ export function Charts() {
         setLoaded(true);
         return;
       }
-      const p = await withTimeout(getMyProfile());
+      const p = await withRetry(() => getMyProfile(), {
+        timeoutMs: 5000,
+        maxAttempts: 3,
+        label: "getMyProfile",
+      });
       const r = p?.role ?? "general";
       setRole(r);
       if (r === "admin" || r === "developer") {
-        setUserGrids(await withTimeout(pullAllUserGrids()));
+        setUserGrids(
+          await withRetry(() => pullAllUserGrids(), {
+            timeoutMs: 5000,
+            maxAttempts: 3,
+            label: "pullAllUserGrids",
+          }),
+        );
       } else {
-        const remote = await withTimeout(pullRemote());
+        const remote = await withRetry(() => pullRemote(), {
+          timeoutMs: 5000,
+          maxAttempts: 3,
+          label: "pullRemote",
+        });
         if (remote) {
           setItems(remote.items);
           setMinutes(remote.minutes);
