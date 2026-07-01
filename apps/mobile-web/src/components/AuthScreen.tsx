@@ -160,6 +160,17 @@ export default function AuthScreen() {
               ? "ログイン"
               : "登録する"}
         </button>
+
+        {mode === "login" && (
+          <div className="mt-4 text-center">
+            <a
+              href="/auth/forgot-password"
+              className="text-[14px] text-accent"
+            >
+              パスワードをお忘れの方はこちら
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
