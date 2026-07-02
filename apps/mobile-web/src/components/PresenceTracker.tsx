@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { getMyProfile } from "@/lib/profile";
+import { getMyProfile, touchMyLastActiveAt } from "@/lib/profile";
 
 const PRESENCE_CHANNEL = "credobody-presence";
+const LAST_ACTIVE_HEARTBEAT_MS = 5 * 60 * 1000;
 
 // ログイン中、自分の在席を presence チャンネルに track する。
 // 管理画面(admin)の「開発」タブで、誰がアプリを利用中かを確認するために使う。
@@ -28,8 +29,15 @@ export default function PresenceTracker() {
           app: "mobile",
           joinedAt: new Date().toISOString(),
         });
+        // 最終アクセス時刻を記録（「最近のアクセス」表示用）。失敗は無視。
+        void touchMyLastActiveAt().catch(() => {});
       });
+      // 5分ごとに last_active_at を更新（利用中の目安）。
+      const heartbeat = window.setInterval(() => {
+        void touchMyLastActiveAt().catch(() => {});
+      }, LAST_ACTIVE_HEARTBEAT_MS);
       cleanup = () => {
+        window.clearInterval(heartbeat);
         channel.untrack().catch(() => {});
         supabase!.removeChannel(channel);
       };

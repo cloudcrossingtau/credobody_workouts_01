@@ -1,8 +1,9 @@
 import { useEffect } from "react";
 import { supabase } from "@/lib/supabase";
-import { getMyProfile } from "@/lib/profile";
+import { getMyProfile, touchMyLastActiveAt } from "@/lib/profile";
 
 const PRESENCE_CHANNEL = "credobody-presence";
+const LAST_ACTIVE_HEARTBEAT_MS = 5 * 60 * 1000;
 
 // ログイン中、自分の在席を presence チャンネルに track する（全認証ページに常駐）。
 // 「開発 > オンライン」(/developer/online)では OnlineUsers が track+購読を担うため、
@@ -35,8 +36,13 @@ export function PresenceTracker() {
           app: "admin",
           joinedAt: new Date().toISOString(),
         });
+        void touchMyLastActiveAt().catch(() => {});
       });
+      const heartbeat = window.setInterval(() => {
+        void touchMyLastActiveAt().catch(() => {});
+      }, LAST_ACTIVE_HEARTBEAT_MS);
       cleanup = () => {
+        window.clearInterval(heartbeat);
         channel.untrack().catch(() => {});
         supabase!.removeChannel(channel);
       };

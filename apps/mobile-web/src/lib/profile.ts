@@ -23,9 +23,23 @@ export type Profile = {
   nickname: string | null;
   avatar_path: string | null;
   week_start: number;
+  last_active_at: string | null;
 };
 
-const COLUMNS = "id, email, role, nickname, avatar_path, week_start";
+const COLUMNS =
+  "id, email, role, nickname, avatar_path, week_start, last_active_at";
+
+// 自分の last_active_at を now() に更新する（heartbeat）。装飾用途なので失敗は無視。
+export async function touchMyLastActiveAt(): Promise<void> {
+  if (!supabase) return;
+  const { data: u } = await supabase.auth.getUser();
+  const uid = u.user?.id;
+  if (!uid) return;
+  await supabase
+    .from("profiles")
+    .update({ last_active_at: new Date().toISOString() })
+    .eq("id", uid);
+}
 
 export async function getMyProfile(): Promise<Profile | null> {
   if (!supabase) return null;

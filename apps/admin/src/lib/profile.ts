@@ -23,9 +23,11 @@ export type Profile = {
   nickname: string | null;
   avatar_path: string | null;
   week_start: number;
+  last_active_at: string | null;
 };
 
-const COLUMNS = "id, email, role, nickname, avatar_path, week_start";
+const COLUMNS =
+  "id, email, role, nickname, avatar_path, week_start, last_active_at";
 
 // サイドバー等の表示名・イニシャル・ロール表記。
 export function displayName(p: Profile): string {
@@ -56,6 +58,27 @@ export async function getMyProfile(): Promise<Profile | null> {
     .single();
   if (error) return null;
   return data as Profile;
+}
+
+// 全ユーザーのプロフィール（管理者/開発者のみ・RLSで全件参照可）。
+// 「オンライン」の最近のアクセス表示に使う。
+export async function listAllProfiles(): Promise<Profile[]> {
+  if (!supabase) return [];
+  const { data, error } = await supabase.from("profiles").select(COLUMNS);
+  if (error) throw error;
+  return (data ?? []) as Profile[];
+}
+
+// 自分の last_active_at を now() に更新する（heartbeat）。装飾用途なので失敗は無視。
+export async function touchMyLastActiveAt(): Promise<void> {
+  if (!supabase) return;
+  const { data: u } = await supabase.auth.getUser();
+  const uid = u.user?.id;
+  if (!uid) return;
+  await supabase
+    .from("profiles")
+    .update({ last_active_at: new Date().toISOString() })
+    .eq("id", uid);
 }
 
 export async function updateMyProfile(patch: {
