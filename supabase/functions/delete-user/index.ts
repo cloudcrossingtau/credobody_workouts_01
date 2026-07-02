@@ -180,6 +180,20 @@ Deno.serve(async (req) => {
       );
     }
 
+    // 監査ログ記録（削除成功後）。記録失敗で削除結果は変えない。
+    const { error: auditError } = await adminClient.from("audit_logs").insert({
+      actor_id: caller.id,
+      actor_email: caller.email ?? null,
+      action: "delete_user",
+      target_type: "user",
+      target_id: userId,
+      target_label: targetData.user.email ?? null,
+      detail: { storageDeleted },
+    });
+    if (auditError) {
+      console.error("[delete-user] audit log insert failed:", auditError.message);
+    }
+
     return jsonResponse({
       ok: true,
       deleted: {

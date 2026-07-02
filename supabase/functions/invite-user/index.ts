@@ -109,6 +109,20 @@ Deno.serve(async (req) => {
       );
     }
 
+    // 監査ログ記録（成功後）。記録失敗で招待結果は変えない。
+    const { error: auditError } = await adminClient.from("audit_logs").insert({
+      actor_id: user.id,
+      actor_email: user.email ?? null,
+      action: "invite_user",
+      target_type: "user",
+      target_id: data.user?.id ?? null,
+      target_label: email,
+      detail: null,
+    });
+    if (auditError) {
+      console.error("[invite-user] audit log insert failed:", auditError.message);
+    }
+
     return jsonResponse({ ok: true, userId: data.user?.id ?? null });
   } catch (e) {
     return jsonResponse(
