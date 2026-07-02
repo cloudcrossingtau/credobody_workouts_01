@@ -130,6 +130,10 @@ export default function TrainingLog() {
   const [newUnit, setNewUnit] = useState<Unit>("time");
   // 設定: 参照/編集モード（編集前の状態をスナップショットして キャンセルで復元）
   const [settingsEditing, setSettingsEditing] = useState(false);
+  // 設定タブ内のサブ画面（メニュー → 各設定へ1段深く入る）
+  const [settingsPane, setSettingsPane] = useState<
+    "menu" | "week" | "items" | "invite"
+  >("menu");
   const [settingsSnapshot, setSettingsSnapshot] = useState<{
     items: Item[];
     minutes: Minutes;
@@ -386,6 +390,7 @@ export default function TrainingLog() {
     if (view !== "settings") {
       setSettingsEditing(false);
       setSettingsSnapshot(null);
+      setSettingsPane("menu");
     }
   }, [view]);
 
@@ -513,6 +518,7 @@ export default function TrainingLog() {
       setSettingsSnapshot(null);
       setSettingsEditing(false);
       setColorPickerFor(null);
+      setSettingsPane("menu"); // 保存できたら設定メニューに戻る
     } catch (e) {
       console.warn("[settings] save failed:", e);
       setSettingsError("保存に失敗しました。通信状況を確認してもう一度お試しください。");
@@ -531,6 +537,7 @@ export default function TrainingLog() {
     setSettingsEditing(false);
     setColorPickerFor(null);
     setSettingsError(null);
+    setSettingsPane("menu"); // キャンセル/戻るで設定メニューに戻る
   }
 
   const editingItem = editing
@@ -658,6 +665,14 @@ export default function TrainingLog() {
 
   // ===================== 設定ビュー =====================
   if (view === "settings") {
+    const paneTitle =
+      settingsPane === "week"
+        ? "週の開始曜日"
+        : settingsPane === "items"
+          ? "トレーニング項目"
+          : settingsPane === "invite"
+            ? "ユーザー招待"
+            : "設定";
     return (
       <>
         <div className="pb-24">
@@ -665,22 +680,33 @@ export default function TrainingLog() {
             className="sticky top-0 z-30 -mx-4 mb-3 border-b border-card-border bg-background px-4"
             style={{ paddingTop: "var(--safe-top)" }}
           >
-            <div className="flex h-14 items-center justify-between">
-              <span className="text-[17px] font-semibold text-foreground">
-                設定
-              </span>
-              {!settingsEditing && (
+            <div className="flex h-14 items-center gap-2">
+              {settingsPane !== "menu" && (
                 <button
-                  onClick={enterSettingsEdit}
-                  className="rounded-full border border-slate-300 bg-card-bg px-3 py-1 text-[14px] font-medium text-accent"
+                  onClick={cancelSettingsEdit}
+                  aria-label="戻る"
+                  className="inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground active:bg-gray-100"
                 >
-                  編集
+                  <svg
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth={1.8}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className="h-5 w-5"
+                  >
+                    <path d="M15 18l-6-6 6-6" />
+                  </svg>
                 </button>
               )}
+              <span className="text-[17px] font-semibold text-foreground">
+                {paneTitle}
+              </span>
             </div>
           </header>
 
-          {settingsEditing ? (
+          {settingsPane === "week" ? (
           <>
           {/* 週の開始曜日 */}
           <section className="mt-5">
@@ -704,8 +730,33 @@ export default function TrainingLog() {
             </div>
           </section>
 
+          {/* 保存 / キャンセル（週の開始曜日） */}
+          {settingsError && (
+            <p className="mt-5 text-[14px] font-medium text-red-600 dark:text-red-400">
+              {settingsError}
+            </p>
+          )}
+          <div className="mt-4 flex gap-2">
+            <button
+              onClick={saveSettingsEdit}
+              disabled={settingsSaving}
+              className="flex-1 rounded-xl bg-accent px-4 py-2.5 text-[16px] font-semibold text-white active:opacity-90 disabled:opacity-50"
+            >
+              {settingsSaving ? "保存中…" : "保存"}
+            </button>
+            <button
+              onClick={cancelSettingsEdit}
+              disabled={settingsSaving}
+              className="flex-1 rounded-xl border border-slate-300 bg-card-bg px-4 py-2.5 text-[16px] font-medium text-foreground disabled:opacity-50"
+            >
+              キャンセル
+            </button>
+          </div>
+          </>
+          ) : settingsPane === "items" ? (
+          <>
           {/* トレーニング項目 */}
-          <section className="mt-7">
+          <section className="mt-3">
             <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
               トレーニング項目
             </h2>
@@ -906,54 +957,12 @@ export default function TrainingLog() {
             </button>
           </div>
           </>
-          ) : (
+          ) : settingsPane === "invite" ? (
           <>
-          {/* 週の開始曜日（参照） */}
-          <section className="mt-1">
-            <h2 className="text-[16px] font-semibold text-foreground">
-              週の開始曜日
-            </h2>
-            <p className="mt-1.5 text-[15px] text-foreground">{WD[weekStart]}曜</p>
-          </section>
-
-          {/* トレーニング項目（参照） */}
-          <section className="mt-6">
-            <h2 className="text-[16px] font-semibold text-foreground">
-              トレーニング項目
-            </h2>
-            <div className="mt-2 overflow-hidden rounded-2xl border border-card-border bg-card-bg">
-              {items.map((it) => (
-                <div
-                  key={it.id}
-                  className="flex items-center gap-2.5 border-b border-card-border px-3 py-2.5 last:border-b-0"
-                >
-                  <span
-                    className="h-3 w-3 shrink-0 rounded-full"
-                    style={{ backgroundColor: it.color }}
-                  />
-                  <span className="min-w-0 flex-1 truncate text-[15px] text-foreground">
-                    {it.name}
-                  </span>
-                  <span className="text-[13px] text-muted">
-                    {it.unit === "time" ? "時間" : "種目数"}
-                  </span>
-                </div>
-              ))}
-              {items.length === 0 && (
-                <p className="px-4 py-6 text-center text-[15px] text-muted">
-                  項目がありません。「編集」から追加してください。
-                </p>
-              )}
-            </div>
-          </section>
-
           {/* ユーザー招待（管理者/開発者のみ） */}
-          {supabase && session && (myRole === "admin" || myRole === "developer") && (
-            <section className="mt-7">
-              <h2 className="text-[16px] font-semibold text-slate-900 dark:text-slate-100">
-                ユーザー招待
-              </h2>
-              <div className="mt-2 flex gap-2">
+          {supabase && session && (myRole === "admin" || myRole === "developer") ? (
+            <section className="mt-3">
+              <div className="flex gap-2">
                 <input
                   type="email"
                   inputMode="email"
@@ -976,37 +985,61 @@ export default function TrainingLog() {
                 </p>
               )}
             </section>
+          ) : (
+            <p className="mt-3 text-[15px] text-muted">
+              この操作には管理者権限が必要です。
+            </p>
           )}
-
           </>
-          )}
-
-          {/* オープンソースライセンス */}
-          <a
-            href="/licenses"
-            className="mt-8 flex items-center justify-between rounded-xl border border-card-border bg-card-bg px-4 py-3 text-[15px] text-foreground active:bg-gray-50"
-          >
-            <span>オープンソースライセンス</span>
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2}
-              className="h-4 w-4 text-slate-400"
+          ) : (
+          <>
+          {/* 設定メニュー（各設定へ1段深く入る） */}
+          <div className="mt-3 space-y-2">
+            <button
+              onClick={() => {
+                setSettingsPane("week");
+                enterSettingsEdit();
+              }}
+              className="flex w-full items-center justify-between rounded-xl border border-card-border bg-card-bg px-4 py-3 text-[15px] text-foreground active:bg-gray-50"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                d="M9 5l7 7-7 7"
-              />
-            </svg>
-          </a>
+              <span>週の開始曜日</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 text-slate-400"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </button>
+            <button
+              onClick={() => {
+                setSettingsPane("items");
+                enterSettingsEdit();
+              }}
+              className="flex w-full items-center justify-between rounded-xl border border-card-border bg-card-bg px-4 py-3 text-[15px] text-foreground active:bg-gray-50"
+            >
+              <span>トレーニング項目</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 text-slate-400"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </button>
+            {supabase && session && (myRole === "admin" || myRole === "developer") && (
+              <button
+                onClick={() => setSettingsPane("invite")}
+                className="flex w-full items-center justify-between rounded-xl border border-card-border bg-card-bg px-4 py-3 text-[15px] text-foreground active:bg-gray-50"
+              >
+                <span>ユーザー招待</span>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 text-slate-400"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+              </button>
+            )}
+            <a
+              href="/licenses"
+              className="flex w-full items-center justify-between rounded-xl border border-card-border bg-card-bg px-4 py-3 text-[15px] text-foreground active:bg-gray-50"
+            >
+              <span>オープンソースライセンス</span>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 text-slate-400"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
+            </a>
+          </div>
 
           {/* バージョン表示（不具合報告時の特定用） */}
-          <p className="mt-4 pb-2 text-center text-[12px] text-muted">
+          <p className="mt-8 pb-2 text-center text-[12px] text-muted">
             CredoBodyRise v{import.meta.env.PUBLIC_BUILD_VERSION} (
             {import.meta.env.PUBLIC_BUILD_COMMIT})
           </p>
+          </>
+          )}
         </div>
         {tabBar}
       </>
