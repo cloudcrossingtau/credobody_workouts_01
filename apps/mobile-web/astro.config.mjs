@@ -2,17 +2,34 @@
 import { defineConfig } from "astro/config";
 import { fileURLToPath } from "node:url";
 import { readFileSync } from "node:fs";
+import { execSync } from "node:child_process";
 
 import react from "@astrojs/react";
 import tailwindcss from "@tailwindcss/vite";
 
-// ビルド情報: package.json の version + Vercel が注入する commit SHA。
+// ビルド情報: version（package.json）＋ git のコミット情報。
+// commit は Vercel SHA → git → "local"。time はコミット時刻（無ければ現在時刻）。
+// admin/mobile とも同じコミットから起動すれば同じ値になる（動作版の一致確認用）。
 const pkg = JSON.parse(
   readFileSync(new URL("./package.json", import.meta.url), "utf-8"),
 );
+const git = (args) => {
+  try {
+    return execSync(`git -c safe.directory='*' ${args}`, {
+      stdio: ["ignore", "pipe", "ignore"],
+    })
+      .toString()
+      .trim();
+  } catch {
+    return "";
+  }
+};
 const version = pkg.version;
-const commit = (process.env.VERCEL_GIT_COMMIT_SHA || "").slice(0, 7) || "local";
-const buildTime = new Date().toISOString();
+const commit =
+  (process.env.VERCEL_GIT_COMMIT_SHA || "").slice(0, 7) ||
+  git("rev-parse --short HEAD") ||
+  "local";
+const buildTime = git("show -s --format=%cI HEAD") || new Date().toISOString();
 
 // https://astro.build/config
 export default defineConfig({
