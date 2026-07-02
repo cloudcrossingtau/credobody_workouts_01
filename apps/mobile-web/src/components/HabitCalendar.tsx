@@ -981,8 +981,29 @@ export default function TrainingLog() {
           </>
           )}
 
+          {/* オープンソースライセンス */}
+          <a
+            href="/licenses"
+            className="mt-8 flex items-center justify-between rounded-xl border border-card-border bg-card-bg px-4 py-3 text-[15px] text-foreground active:bg-gray-50"
+          >
+            <span>オープンソースライセンス</span>
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth={2}
+              className="h-4 w-4 text-slate-400"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M9 5l7 7-7 7"
+              />
+            </svg>
+          </a>
+
           {/* バージョン表示（不具合報告時の特定用） */}
-          <p className="mt-8 pb-2 text-center text-[12px] text-muted">
+          <p className="mt-4 pb-2 text-center text-[12px] text-muted">
             CredoBodyRise v{import.meta.env.PUBLIC_BUILD_VERSION} (
             {import.meta.env.PUBLIC_BUILD_COMMIT})
           </p>

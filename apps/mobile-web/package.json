@@ -8,9 +8,10 @@
   },
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build",
+    "build": "npm run gen:licenses && astro build",
     "preview": "astro preview",
-    "astro": "astro"
+    "astro": "astro",
+    "gen:licenses": "node scripts/gen-licenses.mjs"
   },
   "dependencies": {
     "@astrojs/react": "^5.0.0",
@@ -22,6 +23,9 @@
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tailwindcss": "4.2.4"
+  },
+  "devDependencies": {
+    "license-checker-rseidelsohn": "^4.4.2"
   },
   "overrides": {
     "vite": "^7"
