@@ -132,7 +132,7 @@ export default function TrainingLog() {
   const [settingsEditing, setSettingsEditing] = useState(false);
   // 設定タブ内のサブ画面（メニュー → 各設定へ1段深く入る）
   const [settingsPane, setSettingsPane] = useState<
-    "menu" | "week" | "items" | "invite"
+    "menu" | "week" | "items" | "invite" | "profile"
   >("menu");
   const [settingsSnapshot, setSettingsSnapshot] = useState<{
     items: Item[];
@@ -665,6 +665,18 @@ export default function TrainingLog() {
 
   // ===================== 設定ビュー =====================
   if (view === "settings") {
+    // プロフィールは独立画面（ProfileScreen）を設定サブ画面として表示。戻るで設定メニューへ。
+    if (settingsPane === "profile") {
+      return (
+        <>
+          <ProfileScreen
+            onBack={() => setSettingsPane("menu")}
+            onChanged={refreshProfile}
+          />
+          {tabBar}
+        </>
+      );
+    }
     const paneTitle =
       settingsPane === "week"
         ? "週の開始曜日"
@@ -673,6 +685,20 @@ export default function TrainingLog() {
           : settingsPane === "invite"
             ? "ユーザー招待"
             : "設定";
+    // 設定メニューのカード共通スタイルと右端シェブロン
+    const cardCls =
+      "flex w-full items-center justify-between rounded-xl border border-card-border bg-card-bg px-4 py-3 text-[15px] text-foreground active:bg-gray-50";
+    const chevron = (
+      <svg
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth={2}
+        className="h-4 w-4 text-slate-400"
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+      </svg>
+    );
     return (
       <>
         <div className="pb-24">
@@ -993,44 +1019,77 @@ export default function TrainingLog() {
           </>
           ) : (
           <>
-          {/* 設定メニュー（各設定へ1段深く入る） */}
-          <div className="mt-3 space-y-2">
-            <button
-              onClick={() => {
-                setSettingsPane("items");
-                enterSettingsEdit();
-              }}
-              className="flex w-full items-center justify-between rounded-xl border border-card-border bg-card-bg px-4 py-3 text-[15px] text-foreground active:bg-gray-50"
-            >
-              <span>トレーニング項目</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 text-slate-400"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-            </button>
-            <button
-              onClick={() => {
-                setSettingsPane("week");
-                enterSettingsEdit();
-              }}
-              className="flex w-full items-center justify-between rounded-xl border border-card-border bg-card-bg px-4 py-3 text-[15px] text-foreground active:bg-gray-50"
-            >
-              <span>週の開始曜日</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 text-slate-400"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-            </button>
+          {/* 設定メニュー（カテゴリ別・各設定へ1段深く入る） */}
+          <div className="mt-3 space-y-6">
+            {/* アカウント */}
+            <section>
+              <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-muted">
+                アカウント
+              </h3>
+              <div className="space-y-2">
+                <button onClick={() => setSettingsPane("profile")} className={cardCls}>
+                  <span>プロフィール</span>
+                  {chevron}
+                </button>
+              </div>
+            </section>
+
+            {/* トレーニング */}
+            <section>
+              <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-muted">
+                トレーニング
+              </h3>
+              <div className="space-y-2">
+                <button
+                  onClick={() => {
+                    setSettingsPane("items");
+                    enterSettingsEdit();
+                  }}
+                  className={cardCls}
+                >
+                  <span>トレーニング項目</span>
+                  {chevron}
+                </button>
+                <button
+                  onClick={() => {
+                    setSettingsPane("week");
+                    enterSettingsEdit();
+                  }}
+                  className={cardCls}
+                >
+                  <span>週の開始曜日</span>
+                  {chevron}
+                </button>
+              </div>
+            </section>
+
+            {/* 管理（管理者/開発者のみ） */}
             {supabase && session && (myRole === "admin" || myRole === "developer") && (
-              <button
-                onClick={() => setSettingsPane("invite")}
-                className="flex w-full items-center justify-between rounded-xl border border-card-border bg-card-bg px-4 py-3 text-[15px] text-foreground active:bg-gray-50"
-              >
-                <span>ユーザー招待</span>
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 text-slate-400"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-              </button>
+              <section>
+                <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-muted">
+                  管理
+                </h3>
+                <div className="space-y-2">
+                  <button onClick={() => setSettingsPane("invite")} className={cardCls}>
+                    <span>ユーザー招待</span>
+                    {chevron}
+                  </button>
+                </div>
+              </section>
             )}
-            <a
-              href="/licenses"
-              className="flex w-full items-center justify-between rounded-xl border border-card-border bg-card-bg px-4 py-3 text-[15px] text-foreground active:bg-gray-50"
-            >
-              <span>オープンソースライセンス</span>
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-4 w-4 text-slate-400"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" /></svg>
-            </a>
+
+            {/* 情報 */}
+            <section>
+              <h3 className="mb-2 text-[12px] font-semibold uppercase tracking-wider text-muted">
+                情報
+              </h3>
+              <div className="space-y-2">
+                <a href="/licenses" className={cardCls}>
+                  <span>オープンソースライセンス</span>
+                  {chevron}
+                </a>
+              </div>
+            </section>
           </div>
 
           {/* バージョン表示（不具合報告時の特定用） */}
