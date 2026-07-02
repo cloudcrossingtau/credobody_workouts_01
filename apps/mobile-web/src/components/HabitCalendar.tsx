@@ -1092,10 +1092,16 @@ export default function TrainingLog() {
             </section>
           </div>
 
-          {/* バージョン表示（不具合報告時の特定用） */}
+          {/* バージョン表示（不具合報告時・動作版の確認用） */}
           <p className="mt-8 pb-2 text-center text-[12px] text-muted">
             CredoBodyRise v{import.meta.env.PUBLIC_BUILD_VERSION} (
-            {import.meta.env.PUBLIC_BUILD_COMMIT})
+            {import.meta.env.PUBLIC_BUILD_COMMIT}) · ビルド{" "}
+            {new Date(import.meta.env.PUBLIC_BUILD_TIME).toLocaleString("ja-JP", {
+              month: "2-digit",
+              day: "2-digit",
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
           </p>
           </>
           )}
