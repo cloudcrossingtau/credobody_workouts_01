@@ -1,8 +1,8 @@
 ---
-import BaseLayout from "@/layouts/BaseLayout.astro";
-import { AdminPage } from "@/components/AdminPage";
+import AdminLayout from "@/layouts/AdminLayout.astro";
+import { AnnouncementsAdminPage } from "@/components/AnnouncementsAdminPage";
 ---
 
-<BaseLayout title="CredoBodyRise — 管理">
-  <AdminPage client:only="react" />
-</BaseLayout>
+<AdminLayout title="CredoBodyRise — 管理（お知らせ）">
+  <AnnouncementsAdminPage client:only="react" />
+</AdminLayout>

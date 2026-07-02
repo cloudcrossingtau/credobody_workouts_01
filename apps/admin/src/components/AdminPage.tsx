@@ -67,12 +67,7 @@ export function AdminPage() {
   const canManage = role === "admin" || role === "developer";
 
   return (
-    <div className="mx-auto max-w-2xl p-6">
-      <h2 className="mb-1 text-[20px] font-semibold text-foreground">管理</h2>
-      <p className="mb-5 text-[13px] text-muted">
-        管理者向けの機能（開発に特化した操作は「開発」タブ）。
-      </p>
-
+    <div className="mx-auto max-w-2xl">
       {!loaded ? (
         <p className="text-[15px] text-muted">読み込み中…</p>
       ) : !canManage ? (

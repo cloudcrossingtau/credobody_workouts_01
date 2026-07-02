@@ -1,0 +1,33 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { AnnouncementsListPage } from "@/components/AnnouncementsListPage";
+---
+
+<BaseLayout title="CredoBodyRise — お知らせ">
+  <header
+    class="sticky top-0 z-30 -mx-4 mb-2 border-b border-card-border bg-background px-4"
+    style="padding-top: var(--safe-top)"
+  >
+    <div class="flex h-14 items-center gap-2">
+      <a
+        href="/"
+        aria-label="戻る"
+        class="inline-flex h-9 w-9 items-center justify-center rounded-full text-foreground active:bg-gray-100"
+      >
+        <svg
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.8"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+          class="h-5 w-5"
+        >
+          <path d="M15 18l-6-6 6-6"></path>
+        </svg>
+      </a>
+      <span class="text-[17px] font-semibold text-foreground">お知らせ</span>
+    </div>
+  </header>
+  <AnnouncementsListPage client:only="react" />
+</BaseLayout>

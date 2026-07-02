@@ -1,0 +1,48 @@
+---
+// 管理者向けページ用レイアウト。上部にサブナビ（お知らせ / 招待）を持ち、
+// 各タブは別ページ。開発タブの DevLayout と同じ構成。
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+interface Props {
+  title?: string;
+}
+
+const { title = "CredoBodyRise — 管理" } = Astro.props;
+const pathname = Astro.url.pathname.replace(/\/$/, "");
+
+const adminNavItems = [
+  { href: "/admin", label: "お知らせ" },
+  { href: "/admin/invite", label: "招待" },
+];
+---
+
+<BaseLayout title={title}>
+  <div>
+    <header class="border-b border-card-border bg-card-bg px-6 py-4">
+      <h2 class="text-xl font-bold text-foreground">管理</h2>
+      <p class="mt-0.5 text-[13px] text-muted">
+        管理者向け機能（お知らせ配信・ユーザー招待）
+      </p>
+      <nav class="mt-4 flex gap-1">
+        {
+          adminNavItems.map((item) => {
+            const isActive = pathname === item.href;
+            const base =
+              "px-4 py-2 rounded-lg text-[15px] font-medium transition-colors";
+            const state = isActive
+              ? "bg-accent text-white"
+              : "text-foreground hover:bg-gray-100";
+            return (
+              <a href={item.href} class={`${base} ${state}`}>
+                {item.label}
+              </a>
+            );
+          })
+        }
+      </nav>
+    </header>
+    <div class="p-6">
+      <slot />
+    </div>
+  </div>
+</BaseLayout>

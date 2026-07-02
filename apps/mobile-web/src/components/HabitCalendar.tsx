@@ -20,6 +20,7 @@ import { withRetry, autoReloadOnce } from "@/lib/recover";
 import AuthScreen from "./AuthScreen";
 import SetPasswordScreen from "./SetPasswordScreen";
 import ProfileScreen from "./ProfileScreen";
+import { AnnouncementBellButton } from "./AnnouncementBellButton";
 
 // ---- 型 ----
 type Unit = "time" | "count"; // time=実施時間(分) / count=種目数(回)
@@ -1310,6 +1311,7 @@ export default function TrainingLog() {
               )}
             </div>
             <div className="flex items-center gap-2">
+              {supabase && session && <AnnouncementBellButton />}
               {supabase && session && (
               <button
                 onClick={() => setView("profile")}
