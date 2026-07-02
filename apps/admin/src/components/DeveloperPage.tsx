@@ -10,7 +10,6 @@ import {
 } from "@/lib/users";
 import { getAvatarUrl, roleLabel } from "@/lib/profile";
 import { Avatar } from "@/components/Avatar";
-import { OnlineUsers } from "@/components/OnlineUsers";
 import { RefreshButton } from "@/components/RefreshButton";
 
 function userName(u: AdminUser): string {
@@ -108,16 +107,14 @@ export function DeveloperPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
+    <div className="mx-auto max-w-3xl">
       <div className="mb-1 flex items-center justify-between">
-        <h2 className="text-[20px] font-semibold text-foreground">開発</h2>
+        <h2 className="text-[20px] font-semibold text-foreground">登録ユーザー</h2>
         <RefreshButton onClick={load} />
       </div>
       <p className="mb-5 text-[13px] text-muted">
         登録ユーザーの一覧とロール変更（開発者のみ）。
       </p>
-
-      <OnlineUsers />
 
       {error && <p className="text-[15px] text-red-600">{error}</p>}
       {!users && !error && (

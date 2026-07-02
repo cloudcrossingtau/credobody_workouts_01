@@ -1,0 +1,8 @@
+---
+import DevLayout from "@/layouts/DevLayout.astro";
+import { AuditLogPage } from "@/components/AuditLogPage";
+---
+
+<DevLayout title="CredoBodyRise — 開発（監査ログ）">
+  <AuditLogPage client:only="react" />
+</DevLayout>

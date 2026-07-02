@@ -107,7 +107,7 @@ export function AuditLogPage() {
   }, [actionFilter]);
 
   return (
-    <div className="mx-auto max-w-5xl p-6">
+    <div className="max-w-5xl">
       <div className="mb-2 flex items-center gap-3">
         <h2 className="text-[20px] font-semibold text-foreground">監査ログ</h2>
         <select

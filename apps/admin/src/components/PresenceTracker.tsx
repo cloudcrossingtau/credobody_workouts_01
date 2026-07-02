@@ -5,14 +5,14 @@ import { getMyProfile } from "@/lib/profile";
 const PRESENCE_CHANNEL = "credobody-presence";
 
 // ログイン中、自分の在席を presence チャンネルに track する（全認証ページに常駐）。
-// 「開発」タブ(/developer)では OnlineUsers が track+購読を担うため、ここはスキップ
-// （同一チャンネルの重複作成による自分自身の消失を避ける）。
+// 「開発 > オンライン」(/developer/online)では OnlineUsers が track+購読を担うため、
+// そのページだけスキップする（同一チャンネルの重複作成による自分自身の消失を避ける）。
 export function PresenceTracker() {
   useEffect(() => {
     if (!supabase) return;
     if (
       typeof window !== "undefined" &&
-      window.location.pathname.startsWith("/developer")
+      window.location.pathname.startsWith("/developer/online")
     ) {
       return;
     }

@@ -1,0 +1,8 @@
+---
+import DevLayout from "@/layouts/DevLayout.astro";
+import { OnlineUsers } from "@/components/OnlineUsers";
+---
+
+<DevLayout title="CredoBodyRise — 開発（オンライン）">
+  <OnlineUsers client:only="react" />
+</DevLayout>
